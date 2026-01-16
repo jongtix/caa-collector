@@ -1,8 +1,22 @@
 spring:
   application:
     name: AlgorithmicTradingWithClaudeCode
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   profiles:
     default: local
     group:
       local: log-local, db-local
       prod: log-prod, db-prod
+
+kis:
+  base-url: https://openapi.koreainvestment.com:9443
+  accounts:
+    - name: 연금저축
+      account-number: ${KIS_ACCOUNT_PENSION_NUMBER}
+      app-key: ${KIS_ACCOUNT_PENSION_APP_KEY}
+      app-secret: ${KIS_ACCOUNT_PENSION_APP_SECRET}
+    - name: 금거래계좌
+      account-number: ${KIS_ACCOUNT_GOLD_NUMBER}
+      app-key: ${KIS_ACCOUNT_GOLD_APP_KEY}
+      app-secret: ${KIS_ACCOUNT_GOLD_APP_SECRET}
