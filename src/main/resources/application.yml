@@ -1,3 +1,8 @@
 spring:
   application:
     name: AlgorithmicTradingWithClaudeCode
+  profiles:
+    default: local
+    group:
+      local: log-local, db-local
+      prod: log-prod, db-prod

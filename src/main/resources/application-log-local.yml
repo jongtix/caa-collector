@@ -1,0 +1,7 @@
+# Local 환경 로그 설정
+logging:
+  level:
+    root: INFO
+    com.custom.trader: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

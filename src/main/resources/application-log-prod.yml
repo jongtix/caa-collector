@@ -1,0 +1,16 @@
+# Production 환경 로그 설정
+logging:
+  level:
+    root: WARN
+    com.custom.trader: INFO
+  file:
+    name: ${LOG_FILE_PATH}/algorithmic_trading.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_FILE_PATH}/algorithmic_trading_%d{yyyyMMdd}_%i.log
+      max-file-size: 100MB
+      max-history: 90
+      total-size-cap: 1GB
