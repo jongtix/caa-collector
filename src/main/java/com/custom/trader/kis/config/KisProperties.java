@@ -7,5 +7,6 @@ import java.util.List;
 @ConfigurationProperties(prefix = "kis")
 public record KisProperties(
     String baseUrl,
+    String userId,
     List<KisAccountProperties> accounts
 ) {}

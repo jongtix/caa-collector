@@ -7,10 +7,12 @@ spring:
     default: local
     group:
       local: log-local, db-local
+      dev: log-dev, db-dev
       prod: log-prod, db-prod
 
 kis:
   base-url: https://openapi.koreainvestment.com:9443
+  user-id: ${KIS_ID}
   accounts:
     - name: 연금저축
       account-number: ${KIS_ACCOUNT_PENSION_NUMBER}
