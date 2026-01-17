@@ -1,6 +1,7 @@
 package com.custom.trader.kis.service;
 
 import com.custom.trader.kis.config.KisAccountProperties;
+import com.custom.trader.kis.config.KisApiEndpoint;
 import com.custom.trader.kis.config.KisProperties;
 import com.custom.trader.kis.dto.watchlist.WatchlistGroupResponse;
 import com.custom.trader.kis.dto.watchlist.WatchlistStockResponse;
@@ -19,11 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KisWatchlistService {
 
-    private static final String WATCHLIST_GROUP_PATH = "/uapi/domestic-stock/v1/quotations/intstock-grouplist";
-    private static final String WATCHLIST_STOCK_PATH = "/uapi/domestic-stock/v1/quotations/intstock-stocklist-by-group";
-    private static final String TR_ID_GROUP_LIST = "HHKCM113004C7";
-    private static final String TR_ID_STOCK_LIST = "HHKCM113004C6";
-
     private final RestClient kisRestClient;
     private final KisAuthService kisAuthService;
     private final KisProperties kisProperties;
@@ -36,7 +32,7 @@ public class KisWatchlistService {
 
         WatchlistGroupResponse response = kisRestClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path(WATCHLIST_GROUP_PATH)
+                        .path(KisApiEndpoint.WATCHLIST_GROUP.getPath())
                         .queryParam("TYPE", "1")
                         .queryParam("FID_ETC_CLS_CODE", "00")
                         .queryParam("USER_ID", kisProperties.userId())
@@ -44,7 +40,7 @@ public class KisWatchlistService {
                 .header("authorization", "Bearer " + accessToken)
                 .header("appkey", account.appKey())
                 .header("appsecret", account.appSecret())
-                .header("tr_id", TR_ID_GROUP_LIST)
+                .header("tr_id", KisApiEndpoint.WATCHLIST_GROUP.getTrId())
                 .header("custtype", "P")
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -68,7 +64,7 @@ public class KisWatchlistService {
 
         WatchlistStockResponse response = kisRestClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path(WATCHLIST_STOCK_PATH)
+                        .path(KisApiEndpoint.WATCHLIST_STOCK.getPath())
                         .queryParam("TYPE", "1")
                         .queryParam("USER_ID", kisProperties.userId())
                         .queryParam("INTER_GRP_CODE", groupCode)
@@ -81,7 +77,7 @@ public class KisWatchlistService {
                 .header("authorization", "Bearer " + accessToken)
                 .header("appkey", account.appKey())
                 .header("appsecret", account.appSecret())
-                .header("tr_id", TR_ID_STOCK_LIST)
+                .header("tr_id", KisApiEndpoint.WATCHLIST_STOCK.getTrId())
                 .header("custtype", "P")
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
