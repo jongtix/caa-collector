@@ -9,6 +9,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
+/**
+ * 관심종목 엔티티.
+ * 관심종목 그룹에 속한 개별 종목 정보를 저장한다.
+ */
 @Entity
 @Table(name = "watchlist_stock", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"group_id", "stock_code"})

@@ -40,9 +40,9 @@ public class WatchlistService {
 
     private void syncGroup(String userId, WatchlistGroupResponse.GroupItem groupItem) {
         WatchlistGroup group = watchlistGroupRepository
-                .findByAccountNumberAndGroupCode(userId, groupItem.interGrpCode())
+                .findByUserIdAndGroupCode(userId, groupItem.interGrpCode())
                 .orElseGet(() -> WatchlistGroup.builder()
-                        .accountNumber(userId)
+                        .userId(userId)
                         .groupCode(groupItem.interGrpCode())
                         .groupName(groupItem.interGrpName())
                         .type("1")
@@ -68,6 +68,6 @@ public class WatchlistService {
 
     @Transactional(readOnly = true)
     public List<WatchlistGroup> getWatchlistGroups(String userId) {
-        return watchlistGroupRepository.findByAccountNumber(userId);
+        return watchlistGroupRepository.findByUserId(userId);
     }
 }

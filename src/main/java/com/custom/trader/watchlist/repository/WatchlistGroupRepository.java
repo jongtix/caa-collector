@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface WatchlistGroupRepository extends JpaRepository<WatchlistGroup, Long> {
 
-    List<WatchlistGroup> findByAccountNumber(String accountNumber);
+    List<WatchlistGroup> findByUserId(String userId);
 
-    Optional<WatchlistGroup> findByAccountNumberAndGroupCode(String accountNumber, String groupCode);
+    Optional<WatchlistGroup> findByUserIdAndGroupCode(String userId, String groupCode);
 }
