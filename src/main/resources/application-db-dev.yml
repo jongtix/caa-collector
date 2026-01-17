@@ -1,5 +1,4 @@
-# Production 환경 DB 설정
-# 실제 운영 환경에서는 환경변수 또는 외부 설정으로 민감 정보를 관리하세요
+# Development 환경 DB 설정
 spring:
   datasource:
     url: ${DB_URL}
@@ -8,7 +7,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
