@@ -9,6 +9,8 @@ description: "Java 21 Record & JPA/Querydsl 최적화 가이드"
 - **Access:** `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 필수.
 - **Immutability:** `@Setter` 금지. 의미 있는 비즈니스 메서드 사용.
 - **Fetch:** 모든 연관 관계 `FetchType.LAZY` 강제 (N+1 방지).
+- **BaseEntity:** 생성/수정 시간 자동 관리용 상속 클래스 사용 권장.
+- **Description:** 각 Entity 필드에 JavaDoc 주석 필수.
 
 ## 2. DTO Mapping
 - **Standard:** 반환 시 Java 21 `record` 필수 사용.
