@@ -1,12 +1,19 @@
 package com.custom.trader.kis.exception;
 
-public class KisApiException extends RuntimeException {
+import com.custom.trader.common.exception.BusinessException;
+import com.custom.trader.common.exception.ErrorCode;
+
+public class KisApiException extends BusinessException {
 
     public KisApiException(String message) {
-        super(message);
+        super(ErrorCode.KIS_API_ERROR, message);
     }
 
-    public KisApiException(String message, Throwable cause) {
-        super(message, cause);
+    public KisApiException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
+    public KisApiException(ErrorCode errorCode, String message) {
+        super(errorCode, message);
     }
 }
