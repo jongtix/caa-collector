@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient;
 public class RestClientConfig {
 
     @Bean
-    public RestClient kisRestClient(KisProperties kisProperties, RestClient.Builder builder) {
+    public RestClient kisApiRestClient(KisProperties kisProperties, RestClient.Builder builder) {
         return builder
                 .baseUrl(kisProperties.baseUrl())
                 .requestFactory(new JdkClientHttpRequestFactory())

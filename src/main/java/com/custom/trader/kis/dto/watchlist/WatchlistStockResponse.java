@@ -1,5 +1,7 @@
 package com.custom.trader.kis.dto.watchlist;
 
+import com.custom.trader.kis.dto.KisApiResponse;
+
 import java.util.List;
 
 public record WatchlistStockResponse(
@@ -7,7 +9,7 @@ public record WatchlistStockResponse(
     String msgCd,
     String msg1,
     List<StockItem> output2
-) {
+) implements KisApiResponse {
     public record StockItem(
         String pdno,
         String prdtName,
