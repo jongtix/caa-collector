@@ -20,7 +20,7 @@ description: "Feature/Bugfix 브랜치 전략 및 이모지 커밋 규격"
 
 ## 3. Claude Execution Logic
 - **Check:** `add` 전후 `status`, `diff` 확인 필수.
-- **Automation:** 성공 시 자동 커밋. `push` 전 사용자 확인 필수.
+- **Automation:** 성공 시 자동 커밋. `push` 전 사용자 확인 필수. `push` 후 해당 브랜치는 삭제 권장.
 - **Rebase:** 충돌 시 해결 후 `rebase --continue` 진행.
 
 ## 4. Examples
