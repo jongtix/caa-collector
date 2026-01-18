@@ -15,19 +15,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
-        log.error("BusinessException: {}", e.getMessage());
+        log.error("BusinessException [{}]: {}", e.getErrorCode(), e.getMessage());
         return ResponseEntity.status(e.getErrorCode().getStatus())
-                .body(ApiResponse.fail(e.getMessage()));
+                .body(ApiResponse.fail(e.getErrorCode().getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
-        var message = e.getBindingResult().getFieldErrors().stream()
+        var details = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        log.error("ValidationException: {}", message);
+        log.error("ValidationException: {}", details);
         return ResponseEntity.badRequest()
-                .body(ApiResponse.fail(message));
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
