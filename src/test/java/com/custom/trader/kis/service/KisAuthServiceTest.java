@@ -1,5 +1,6 @@
 package com.custom.trader.kis.service;
 
+import com.custom.trader.common.exception.ErrorCode;
 import com.custom.trader.kis.config.KisAccountProperties;
 import com.custom.trader.kis.config.KisProperties;
 import com.custom.trader.kis.dto.KisTokenRequest;
@@ -158,7 +159,7 @@ class KisAuthServiceTest {
             // when & then
             assertThatThrownBy(() -> kisAuthService.getAccessToken("존재하지않는계정"))
                     .isInstanceOf(KisApiException.class)
-                    .hasMessageContaining("Account not found");
+                    .hasMessageContaining(ErrorCode.KIS_NO_ACCOUNT.getMessage());
         }
     }
 
@@ -180,7 +181,7 @@ class KisAuthServiceTest {
             // when & then
             assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
                     .isInstanceOf(KisApiException.class)
-                    .hasMessageContaining("Failed to get access token");
+                    .hasMessageContaining(ErrorCode.KIS_AUTH_ERROR.getMessage());
         }
 
         @Test
@@ -199,7 +200,7 @@ class KisAuthServiceTest {
             // when & then
             assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
                     .isInstanceOf(KisApiException.class)
-                    .hasMessageContaining("Failed to get access token");
+                    .hasMessageContaining(ErrorCode.KIS_AUTH_ERROR.getMessage());
         }
 
         @Test
