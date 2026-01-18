@@ -3,6 +3,13 @@ spring:
     name: AlgorithmicTradingWithClaudeCode
   jackson:
     property-naming-strategy: SNAKE_CASE
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
   profiles:
     default: local
     group:

@@ -12,7 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -31,22 +35,36 @@ public class WatchlistService {
         List<WatchlistGroupResponse.GroupItem> groups = kisWatchlistService.getWatchlistGroups();
         log.info("Found {} groups to sync", groups.size());
 
+        List<String> groupCodes = groups.stream()
+                .map(WatchlistGroupResponse.GroupItem::interGrpCode)
+                .toList();
+        Map<String, WatchlistGroup> existingGroups = watchlistGroupRepository
+                .findByUserIdAndGroupCodeIn(userId, groupCodes)
+                .stream()
+                .collect(Collectors.toMap(WatchlistGroup::getGroupCode, Function.identity()));
+
+        List<WatchlistGroup> groupsToSave = new ArrayList<>();
         for (WatchlistGroupResponse.GroupItem groupItem : groups) {
-            syncGroup(userId, groupItem);
+            WatchlistGroup group = syncGroup(userId, groupItem, existingGroups);
+            groupsToSave.add(group);
         }
 
+        watchlistGroupRepository.saveAll(groupsToSave);
         log.info("Watchlist sync completed for user: {}", userId);
     }
 
-    private void syncGroup(String userId, WatchlistGroupResponse.GroupItem groupItem) {
-        WatchlistGroup group = watchlistGroupRepository
-                .findByUserIdAndGroupCode(userId, groupItem.interGrpCode())
-                .orElseGet(() -> WatchlistGroup.builder()
+    private WatchlistGroup syncGroup(String userId,
+                                     WatchlistGroupResponse.GroupItem groupItem,
+                                     Map<String, WatchlistGroup> existingGroups) {
+        WatchlistGroup group = existingGroups.getOrDefault(
+                groupItem.interGrpCode(),
+                WatchlistGroup.builder()
                         .userId(userId)
                         .groupCode(groupItem.interGrpCode())
                         .groupName(groupItem.interGrpName())
                         .type("1")
-                        .build());
+                        .build()
+        );
 
         group.updateGroupName(groupItem.interGrpName());
         group.clearStocks();
@@ -62,8 +80,8 @@ public class WatchlistService {
             group.addStock(stock);
         }
 
-        watchlistGroupRepository.save(group);
         log.info("Synced group '{}' with {} stocks", groupItem.interGrpName(), stocks.size());
+        return group;
     }
 
     @Transactional(readOnly = true)

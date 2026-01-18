@@ -20,7 +20,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,7 +42,7 @@ class WatchlistServiceTest {
     private KisProperties kisProperties;
 
     @Captor
-    private ArgumentCaptor<WatchlistGroup> groupCaptor;
+    private ArgumentCaptor<List<WatchlistGroup>> groupListCaptor;
 
     private WatchlistService watchlistService;
 
@@ -76,13 +75,11 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "002"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems1);
             given(kisWatchlistService.getStocksByGroup("002")).willReturn(stockItems2);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
@@ -90,9 +87,9 @@ class WatchlistServiceTest {
 
             // then
             verify(kisWatchlistService).getWatchlistGroups();
-            verify(watchlistGroupRepository, times(2)).save(groupCaptor.capture());
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
 
-            var savedGroups = groupCaptor.getAllValues();
+            var savedGroups = groupListCaptor.getValue();
             assertThat(savedGroups).hasSize(2);
 
             var group1 = savedGroups.get(0);
@@ -112,13 +109,18 @@ class WatchlistServiceTest {
             // given
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(Collections.emptyList());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
             verify(kisWatchlistService).getWatchlistGroups();
-            verify(watchlistGroupRepository, never()).save(any());
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            assertThat(groupListCaptor.getValue()).isEmpty();
             verify(kisWatchlistService, never()).getStocksByGroup(any());
         }
     }
@@ -140,19 +142,19 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "003"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("003")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
 
-            var savedGroup = groupCaptor.getValue();
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getUserId()).isEqualTo(TEST_USER_ID);
             assertThat(savedGroup.getGroupCode()).isEqualTo("003");
             assertThat(savedGroup.getGroupName()).isEqualTo("신규그룹");
@@ -179,19 +181,19 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.of(existingGroup));
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(List.of(existingGroup));
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
 
-            var savedGroup = groupCaptor.getValue();
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getGroupName()).isEqualTo("변경된그룹명");
         }
 
@@ -216,19 +218,19 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.of(existingGroup));
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(List.of(existingGroup));
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(newStockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
 
-            var savedGroup = groupCaptor.getValue();
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getStocks()).hasSize(2);
             assertThat(savedGroup.getStocks())
                     .extracting("stockCode")
@@ -336,20 +338,20 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getUserId()).isEqualTo(TEST_USER_ID);
-            verify(watchlistGroupRepository, never()).findByUserIdAndGroupCode(eq(OTHER_USER_ID), any());
+            verify(watchlistGroupRepository, never()).findByUserIdAndGroupCodeIn(eq(OTHER_USER_ID), any());
         }
     }
 
@@ -387,18 +389,18 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, maliciousGroupCode))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup(maliciousGroupCode)).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getGroupCode()).isEqualTo(maliciousGroupCode);
         }
 
@@ -416,18 +418,18 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getStocks()).hasSize(1);
             assertThat(savedGroup.getStocks().get(0).getStockCode()).isEqualTo(specialStockCode);
         }
@@ -447,18 +449,18 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, null))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup(null)).willReturn(Collections.emptyList());
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getGroupCode()).isNull();
         }
 
@@ -475,18 +477,18 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getStocks()).hasSize(1);
             assertThat(savedGroup.getStocks().get(0).getStockCode()).isNull();
         }
@@ -504,18 +506,18 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.save(any(WatchlistGroup.class)))
+            given(watchlistGroupRepository.saveAll(any()))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
-            verify(watchlistGroupRepository).save(groupCaptor.capture());
-            var savedGroup = groupCaptor.getValue();
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getGroupName()).isEmpty();
         }
     }
@@ -549,8 +551,8 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             willThrow(new KisApiException("종목 조회 실패"))
                     .given(kisWatchlistService).getStocksByGroup("001");
 
@@ -573,11 +575,11 @@ class WatchlistServiceTest {
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCode(TEST_USER_ID, "001"))
-                    .willReturn(Optional.empty());
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
             given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
             willThrow(new DataIntegrityViolationException("무결성 제약조건 위반"))
-                    .given(watchlistGroupRepository).save(any(WatchlistGroup.class));
+                    .given(watchlistGroupRepository).saveAll(any());
 
             // when & then
             assertThatThrownBy(() -> watchlistService.syncWatchlist())
