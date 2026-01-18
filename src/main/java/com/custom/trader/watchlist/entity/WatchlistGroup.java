@@ -17,9 +17,14 @@ import java.util.Objects;
  * 한국투자증권 API의 관심종목 그룹 정보를 저장한다.
  */
 @Entity
-@Table(name = "watchlist_group", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "group_code"})
-})
+@Table(name = "watchlist_group",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "group_code"})
+    },
+    indexes = {
+        @Index(name = "idx_watchlist_group_user_id", columnList = "user_id")
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WatchlistGroup extends BaseEntity {
