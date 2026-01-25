@@ -8,6 +8,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+      # ⚠️ 주의: update 모드는 컬럼 추가 시 기존 데이터에 NULL 삽입
+      # 프로덕션 환경에서는 validate 사용 및 수동 마이그레이션 권장
+      # 마이그레이션 스크립트: docs/migrations/V001__add_asset_type_columns.sql
     show-sql: false
     properties:
       hibernate:

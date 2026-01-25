@@ -1,5 +1,7 @@
 package com.custom.trader.watchlist.service;
 
+import com.custom.trader.common.enums.AssetType;
+import com.custom.trader.common.enums.MarketCode;
 import com.custom.trader.kis.config.KisProperties;
 import com.custom.trader.kis.dto.watchlist.WatchlistGroupResponse;
 import com.custom.trader.kis.dto.watchlist.WatchlistStockResponse;
@@ -72,10 +74,14 @@ public class WatchlistService {
         List<WatchlistStockResponse.StockItem> stocks = kisWatchlistService.getStocksByGroup(groupItem.interGrpCode());
 
         for (WatchlistStockResponse.StockItem stockItem : stocks) {
+            MarketCode marketCode = MarketCode.fromExcdOrDefault(stockItem.exchCode(), MarketCode.KRX);
+            AssetType assetType = AssetType.fromFidMrktClsCode(stockItem.fidMrktClsCode());
+
             WatchlistStock stock = WatchlistStock.builder()
-                    .stockCode(stockItem.pdno())
-                    .stockName(stockItem.prdtName())
-                    .marketCode(stockItem.mktIdCd())
+                    .stockCode(stockItem.jongCode())
+                    .stockName(stockItem.htsKorIsnm())
+                    .marketCode(marketCode)
+                    .assetType(assetType)
                     .build();
             group.addStock(stock);
         }

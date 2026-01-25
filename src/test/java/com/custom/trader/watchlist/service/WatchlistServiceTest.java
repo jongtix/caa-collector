@@ -66,11 +66,11 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("002", "관심그룹2")
             );
             var stockItems1 = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK"),
-                    new WatchlistStockResponse.StockItem("000660", "SK하이닉스", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX"),
+                    new WatchlistStockResponse.StockItem("J", "000660", "SK하이닉스", "KRX")
             );
             var stockItems2 = List.of(
-                    new WatchlistStockResponse.StockItem("035420", "NAVER", "STK")
+                    new WatchlistStockResponse.StockItem("J", "035420", "NAVER", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -137,7 +137,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("003", "신규그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005380", "현대차", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005380", "현대차", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -176,7 +176,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "변경된그룹명")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -212,8 +212,8 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
             );
             var newStockItems = List.of(
-                    new WatchlistStockResponse.StockItem("035720", "카카오", "STK"),
-                    new WatchlistStockResponse.StockItem("035420", "NAVER", "STK")
+                    new WatchlistStockResponse.StockItem("J", "035720", "카카오", "KRX"),
+                    new WatchlistStockResponse.StockItem("J", "035420", "NAVER", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -333,7 +333,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -384,7 +384,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem(maliciousGroupCode, "악성그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -413,7 +413,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem(specialStockCode, "테스트종목", "STK")
+                    new WatchlistStockResponse.StockItem("J", specialStockCode, "테스트종목", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -472,7 +472,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem(null, "Null코드종목", "STK")
+                    new WatchlistStockResponse.StockItem("J", null, "Null코드종목", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -501,7 +501,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
@@ -570,7 +570,7 @@ class WatchlistServiceTest {
                     new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
             );
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
             );
 
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
