@@ -1,12 +1,12 @@
 ---
 name: code-style-guide
-description: "Java 21, Spring Boot 4, Thymeleaf 스타일 가이드"
+description: "Java 21, Spring Boot 3, Thymeleaf 스타일 가이드"
 ---
 
-# Java 21 & SB 4 Style Guide
+# Java 21 & SB 3 Style Guide
 
 ## 1. Tech Stack
-- Java 21, Spring Boot 4.0.1, Gradle.
+- Java 21, Spring Boot 3.5.9, Gradle.
 
 ## 2. Coding Rules
 - **Java 21:** DTO/API 객체는 `record` 필수, 지역 변수는 `var` 사용, `switch/instanceof` 패턴 매칭 우선, I/O 작업 시 Virtual Threads 고려.

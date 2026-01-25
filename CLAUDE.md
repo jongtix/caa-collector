@@ -33,7 +33,12 @@ com.custom.trader
 │   ├── config/          # KisProperties, KisAccountProperties (record)
 │   ├── dto/             # API 요청/응답 record
 │   ├── exception/       # KisApiException
-│   └── service/         # KisAuthService (토큰 관리), KisWatchlistService
+│   └── service/         # KisAuthService, KisWatchlistService, KisStockPriceService
+├── stockprice/          # 주식 가격 수집 도메인
+│   ├── domestic/        # 국내 주식 일간 가격 (entity, repository)
+│   ├── overseas/        # 해외 주식 일간 가격 (entity, repository)
+│   ├── service/         # StockPriceCollectorService (일간 수집, 백필)
+│   └── scheduler/       # StockPriceScheduler (03:00 백필, 18:30 일간 수집)
 └── watchlist/           # 관심종목 도메인
     ├── entity/          # WatchlistGroup, WatchlistStock (JPA)
     ├── repository/      # Spring Data JPA
@@ -52,6 +57,20 @@ com.custom.trader
 - **Git 규칙**: `.claude/skills/git-convention/SKILL.md`
 - **코드 리뷰**: `.claude/skills/multi-review/SKILL.md`
 
+## Documentation
+
+프로젝트 문서는 `docs/` 폴더에 관리됨:
+
+- **README.md**: 프로젝트 개요 및 시작 가이드
+- **PRD.md**: 제품 요구사항 명세 (Product Requirements Document)
+- **TECHSPEC.md**: 기술 명세서 (Technical Specification)
+- **MILESTONE.md**: 개발 일정 및 마일스톤
+- **TODO.md**: 작업 항목 및 우선순위
+- **adr/**: 아키텍처 결정 기록 (Architecture Decision Records)
+  - 주요 기술적 결정사항을 문서화
+  - 결정 배경, 대안, 결과를 포함
+  - 현재 5개 ADR 관리 중 (배치 쿼리, 토큰 락, Entity 분리, 타임아웃, 인덱싱)
+
 ## External APIs
 
 - **한국투자증권 Open API**: OAuth2 토큰 → Redis 캐싱, 관심종목/시세 조회
@@ -60,3 +79,5 @@ com.custom.trader
 ## Claude 작업 지침
 
 - **CLAUDE.md 자동 업데이트**: 새로운 패키지/도메인 추가, 아키텍처 변경, 새 외부 API 연동 등 주요 작업 완료 시 이 문서도 함께 업데이트할 것
+- **새로운 브랜치 생성**: 새로운 기능 개발 또는 대규모 리팩토링 시 별도 브랜치에서 작업 후 PR 생성
+- **한국투자증권 API 문서 참조**: API 연동 작업 시 한국투자 코딩도우미 MCP 문서 참고
