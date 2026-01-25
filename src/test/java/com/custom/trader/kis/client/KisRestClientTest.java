@@ -4,6 +4,7 @@ import com.custom.trader.kis.config.KisAccountProperties;
 import com.custom.trader.kis.config.KisApiEndpoint;
 import com.custom.trader.kis.dto.KisApiResponse;
 import com.custom.trader.kis.exception.KisApiException;
+import com.google.common.util.concurrent.RateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,12 +20,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("UnstableApiUsage")
 class KisRestClientTest {
 
     @Mock
     private RestClient restClient;
+
+    @Mock
+    private RateLimiter kisApiRateLimiter;
 
     @Mock
     private RestClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
@@ -42,8 +49,9 @@ class KisRestClientTest {
 
     @BeforeEach
     void setUp() {
-        kisRestClient = new KisRestClient(restClient);
+        kisRestClient = new KisRestClient(restClient, kisApiRateLimiter);
         account = new KisAccountProperties("테스트", "12345678", "appKey", "appSecret");
+        given(kisApiRateLimiter.acquire()).willReturn(0.0);
     }
 
     @Test
@@ -66,6 +74,7 @@ class KisRestClientTest {
         assertThat(result).isNotNull();
         assertThat(result.rtCd()).isEqualTo("0");
         assertThat(result.msg1()).isEqualTo("정상처리 되었습니다");
+        verify(kisApiRateLimiter, times(1)).acquire();
     }
 
     @Test
