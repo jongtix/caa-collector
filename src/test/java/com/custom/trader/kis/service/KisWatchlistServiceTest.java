@@ -117,8 +117,8 @@ class KisWatchlistServiceTest {
         void 그룹코드로_종목_목록_정상_반환() {
             // given
             var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("005930", "삼성전자", "STK"),
-                    new WatchlistStockResponse.StockItem("000660", "SK하이닉스", "STK")
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX"),
+                    new WatchlistStockResponse.StockItem("J", "000660", "SK하이닉스", "KRX")
             );
             var response = new WatchlistStockResponse("0", "00000000", "정상", stockItems);
             String groupCode = "001";
@@ -138,10 +138,10 @@ class KisWatchlistServiceTest {
 
             // then
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).pdno()).isEqualTo("005930");
-            assertThat(result.get(0).prdtName()).isEqualTo("삼성전자");
-            assertThat(result.get(1).pdno()).isEqualTo("000660");
-            assertThat(result.get(1).prdtName()).isEqualTo("SK하이닉스");
+            assertThat(result.get(0).jongCode()).isEqualTo("005930");
+            assertThat(result.get(0).htsKorIsnm()).isEqualTo("삼성전자");
+            assertThat(result.get(1).jongCode()).isEqualTo("000660");
+            assertThat(result.get(1).htsKorIsnm()).isEqualTo("SK하이닉스");
         }
 
         @Test

@@ -11,8 +11,9 @@ public record WatchlistStockResponse(
     List<StockItem> output2
 ) implements KisApiResponse {
     public record StockItem(
-        String pdno,
-        String prdtName,
-        String mktIdCd
+        String fidMrktClsCode,
+        String jongCode,
+        String htsKorIsnm,
+        String exchCode
     ) {}
 }
