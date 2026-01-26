@@ -15,6 +15,7 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -89,7 +90,7 @@ public class KisAuthService {
             }
 
             LocalDateTime expiryTime = LocalDateTime.parse(response.accessTokenTokenExpired(), EXPIRY_FORMATTER);
-            Duration ttl = Duration.between(LocalDateTime.now(), expiryTime.minusMinutes(5));
+            Duration ttl = Duration.between(LocalDateTime.now(ZoneId.of("Asia/Seoul")), expiryTime.minusMinutes(5));
 
             if (ttl.isPositive()) {
                 redisTemplate.opsForValue().set(cacheKey, response.accessToken(), ttl);

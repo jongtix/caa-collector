@@ -260,7 +260,30 @@
 
 ---
 
-## Completed (This Week: 2026-01-19 월 ~ 01-25 일)
+## Completed (This Week: 2026-01-26 월 ~ 02-01 일)
+
+### ✅ StockPrice 도메인 리팩터링 (2026-01-26)
+- [x] Strategy Pattern 도입 (6개 파일 생성)
+  - `StockPriceStrategy.java` 인터페이스
+  - `DomesticStockStrategy.java` / `DomesticIndexStrategy.java`
+  - `OverseasStockStrategy.java` / `OverseasIndexStrategy.java`
+  - `StockPriceStrategyFactory.java`
+- [x] 함수형 인터페이스 추가 (2개)
+  - `TriFunction.java` / `QuadFunction.java`
+- [x] Date Parsing 중앙화
+  - `StockPriceConstants.parseDate()` 도입
+- [x] Generic 메서드 도입
+  - Backfill/Persistence 메서드 통합
+- [x] StockPriceFetchService 제거
+  - 불필요한 위임 레이어 제거
+- [x] ADR 0009 작성
+  - Strategy Pattern 도입 결정 기록
+- [x] 문서 업데이트
+  - `TECHSPEC.md` (strategy 패키지 추가)
+  - `TODO.md` (리팩터링 작업 완료 기록)
+  - `CLAUDE.md` (Architecture 섹션 업데이트)
+
+## Completed (Previous Week: 2026-01-19 월 ~ 01-25 일)
 
 ### ✅ Phase 1 완료 항목
 - [x] KIS API OAuth2 토큰 발급/갱신

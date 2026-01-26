@@ -11,6 +11,11 @@
 | [0003](0003-stock-price-entity-separation.md) | StockPrice Entity 4종 분리 설계 | Accepted | 2026-01-24 |
 | [0004](0004-restclient-timeout-configuration.md) | RestClient 타임아웃 설정 | Accepted | 2026-01-23 |
 | [0005](0005-watchlist-group-indexing.md) | WatchlistGroup 인덱스 추가 | Accepted | 2026-01-23 |
+| [0006](0006-mapstruct-for-entity-mapping.md) | MapStruct를 이용한 Entity 매핑 | Accepted | 2026-01-24 |
+| [0007](0007-pagination-for-bulk-data-query.md) | 대량 데이터 조회를 위한 페이징 처리 | Accepted | 2026-01-24 |
+| [0008](0008-rate-limiter-centralization.md) | Rate Limiter 중앙화 | Accepted | 2026-01-25 |
+| [0009](0009-stockprice-strategy-pattern.md) | StockPrice 도메인에 Strategy Pattern 도입 | Accepted | 2026-01-26 |
+| [0010](0010-template-method-pattern-evaluation.md) | Template Method Pattern 도입 검토 및 보류 결정 | Deferred | 2026-01-26 |
 
 ## ADR 템플릿
 

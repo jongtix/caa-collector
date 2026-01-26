@@ -106,6 +106,13 @@ com.custom.trader
 │   │   │   ├── OverseasStockDailyPrice.java  # 해외 주식 일간 가격
 │   │   │   └── OverseasIndexDailyPrice.java  # 해외 지수 일간 가격
 │   │   └── repository/
+│   ├── strategy/
+│   │   ├── StockPriceStrategy.java           # Strategy 인터페이스
+│   │   ├── DomesticStockStrategy.java        # 국내 주식 처리 전략
+│   │   ├── DomesticIndexStrategy.java        # 국내 지수 처리 전략
+│   │   ├── OverseasStockStrategy.java        # 해외 주식 처리 전략
+│   │   ├── OverseasIndexStrategy.java        # 해외 지수 처리 전략
+│   │   └── StockPriceStrategyFactory.java    # AssetType별 Strategy 제공
 │   ├── service/
 │   │   ├── StockPriceCollectorService.java   # 일간 수집, 백필
 │   │   └── StockBackfillService.java         # 백필 전용

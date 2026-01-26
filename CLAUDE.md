@@ -37,6 +37,7 @@ com.custom.trader
 ├── stockprice/          # 주식 가격 수집 도메인
 │   ├── domestic/        # 국내 주식 일간 가격 (entity, repository)
 │   ├── overseas/        # 해외 주식 일간 가격 (entity, repository)
+│   ├── strategy/        # AssetType별 처리 전략 (Strategy Pattern)
 │   ├── service/         # StockPriceCollectorService (일간 수집, 백필)
 │   └── scheduler/       # StockPriceScheduler (03:00 백필, 18:30 일간 수집)
 └── watchlist/           # 관심종목 도메인
@@ -48,14 +49,20 @@ com.custom.trader
 
 ## Conventions
 
-코드 작성 시 아래 스킬 문서를 참조:
+각 작업 시 적절한 에이전트와 스킬을 활용해 작업을 진행:
 
-- **코딩 스타일**: `.claude/skills/code-style-guide/SKILL.md`
-- **영속성/JPA**: `.claude/skills/persistence-strategy/SKILL.md`
-- **에러 처리**: `.claude/skills/error-handling-master/SKILL.md`
-- **테스트 작성**: `.claude/skills/test-code-generator/SKILL.md`
-- **Git 규칙**: `.claude/skills/git-convention/SKILL.md`
-- **코드 리뷰**: `.claude/skills/multi-review/SKILL.md`
+- **프로젝트 총괄**: `pm` 에이전트
+- **백엔드 개발**: `backend-developer` 에이전트
+- **보안 전략**: `backend-security-coder` 에이전트
+- **성능 최적화**: `simple-performance-engineer` 에이전트
+- **깃 작업 및 커밋 메시지**: `git-master` 에이전트
+- **테스트 코드 작성**: `test-architect` 에이전트
+- **코딩 스타일**: `~/.claude/skills/code-style-guide/SKILL.md`
+- **영속성/JPA**:~/ `.claude/skills/persistence-strategy/SKILL.md`
+- **에러 처리**: `~/.claude/skills/error-handling-master/SKILL.md`
+- **테스트 작성**: `~/.claude/skills/test-code-generator/SKILL.md`
+- **Git 규칙**: `~/.claude/skills/git-convention/SKILL.md`
+- **그 외 정의되지 않은 작업**: `pm` 에이전트와 상의 후 진행
 
 ## Documentation
 
