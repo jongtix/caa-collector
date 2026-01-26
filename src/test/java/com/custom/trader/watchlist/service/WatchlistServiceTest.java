@@ -104,23 +104,20 @@ class WatchlistServiceTest {
         }
 
         @Test
-        @DisplayName("빈 그룹 목록이면 동기화 스킵")
-        void 빈_그룹목록이면_동기화_스킵() {
+        @DisplayName("빈 그룹 목록이면 모든 그룹 삭제 후 종료")
+        void 빈_그룹목록이면_모든_그룹_삭제() {
             // given
             given(kisProperties.userId()).willReturn(TEST_USER_ID);
             given(kisWatchlistService.getWatchlistGroups()).willReturn(Collections.emptyList());
-            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
-                    .willReturn(Collections.emptyList());
-            given(watchlistGroupRepository.saveAll(any()))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             watchlistService.syncWatchlist();
 
             // then
             verify(kisWatchlistService).getWatchlistGroups();
-            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
-            assertThat(groupListCaptor.getValue()).isEmpty();
+            verify(watchlistGroupRepository).deleteByUserId(TEST_USER_ID); // 모든 그룹 삭제
+            verify(watchlistGroupRepository, never()).deleteByUserIdAndGroupCodeNotIn(any(), any());
+            verify(watchlistGroupRepository, never()).saveAll(any()); // saveAll 호출 안 됨
             verify(kisWatchlistService, never()).getStocksByGroup(any());
         }
     }
@@ -234,10 +231,10 @@ class WatchlistServiceTest {
             assertThat(savedGroup.getStocks()).hasSize(2);
             assertThat(savedGroup.getStocks())
                     .extracting("stockCode")
-                    .containsExactly("035720", "035420");
+                    .containsExactlyInAnyOrder("035720", "035420");
             assertThat(savedGroup.getStocks())
                     .extracting("stockName")
-                    .containsExactly("카카오", "NAVER");
+                    .containsExactlyInAnyOrder("카카오", "NAVER");
         }
     }
 
@@ -436,6 +433,112 @@ class WatchlistServiceTest {
     }
 
     @Nested
+    @DisplayName("방어적 프로그래밍 - API 데이터 품질")
+    class DefensiveProgramming {
+
+        @Test
+        @DisplayName("중복 stockCode 처리 - 나중 값 우선")
+        void 중복_stockCode_처리() {
+            // given
+            var groupItems = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var stockItems = List.of(
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX"),
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자(중복)", "KRX"), // 중복
+                    new WatchlistStockResponse.StockItem("J", "000660", "SK하이닉스", "KRX")
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+
+            // 중복 제거되어 2개만 저장됨
+            assertThat(savedGroup.getStocks()).hasSize(2);
+
+            // 나중 값(중복)이 우선됨
+            var duplicateStock = savedGroup.getStocks().stream()
+                    .filter(s -> "005930".equals(s.getStockCode()))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(duplicateStock.getStockName()).isEqualTo("삼성전자(중복)");
+        }
+
+        @Test
+        @DisplayName("null stockCode 필터링")
+        void null_stockCode_필터링() {
+            // given
+            var groupItems = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var stockItems = List.of(
+                    new WatchlistStockResponse.StockItem("J", null, "Null종목", "KRX"), // 필터링됨
+                    new WatchlistStockResponse.StockItem("J", "", "빈문자열종목", "KRX"), // 필터링됨
+                    new WatchlistStockResponse.StockItem("J", "   ", "공백종목", "KRX"), // 필터링됨
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX") // 정상
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+
+            // null/blank stockCode는 필터링되고 정상 종목만 저장됨
+            assertThat(savedGroup.getStocks()).hasSize(1);
+            assertThat(savedGroup.getStocks().get(0).getStockCode()).isEqualTo("005930");
+            assertThat(savedGroup.getStocks().get(0).getStockName()).isEqualTo("삼성전자");
+        }
+
+        @Test
+        @DisplayName("빈 종목 목록 처리")
+        void 빈_종목_목록_처리() {
+            // given
+            var groupItems = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "빈그룹")
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
+                    .willReturn(Collections.emptyList());
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(Collections.emptyList());
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+
+            assertThat(savedGroup.getGroupCode()).isEqualTo("001");
+            assertThat(savedGroup.getStocks()).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("보안 테스트 - API 응답 검증")
     class SecurityApiResponseValidation {
 
@@ -462,35 +565,6 @@ class WatchlistServiceTest {
             verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
             var savedGroup = groupListCaptor.getValue().get(0);
             assertThat(savedGroup.getGroupCode()).isNull();
-        }
-
-        @Test
-        @DisplayName("API null stockCode 처리")
-        void API_null_stockCode_처리() {
-            // given
-            var groupItems = List.of(
-                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
-            );
-            var stockItems = List.of(
-                    new WatchlistStockResponse.StockItem("J", null, "Null코드종목", "KRX")
-            );
-
-            given(kisProperties.userId()).willReturn(TEST_USER_ID);
-            given(kisWatchlistService.getWatchlistGroups()).willReturn(groupItems);
-            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), any()))
-                    .willReturn(Collections.emptyList());
-            given(kisWatchlistService.getStocksByGroup("001")).willReturn(stockItems);
-            given(watchlistGroupRepository.saveAll(any()))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-
-            // when
-            watchlistService.syncWatchlist();
-
-            // then
-            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
-            var savedGroup = groupListCaptor.getValue().get(0);
-            assertThat(savedGroup.getStocks()).hasSize(1);
-            assertThat(savedGroup.getStocks().get(0).getStockCode()).isNull();
         }
 
         @Test
@@ -585,6 +659,278 @@ class WatchlistServiceTest {
             assertThatThrownBy(() -> watchlistService.syncWatchlist())
                     .isInstanceOf(DataIntegrityViolationException.class)
                     .hasMessageContaining("무결성 제약조건 위반");
+        }
+    }
+
+    @Nested
+    @DisplayName("관심종목 편집 반영 기능 테스트")
+    class WatchlistEditReflection {
+
+        @Test
+        @DisplayName("1. 그룹 삭제 감지 - API에 없는 그룹이 DB에서 삭제되는지 확인")
+        void API에_없는_그룹_삭제() {
+            // given
+            var apiGroups = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "유지되는 그룹")
+            );
+            var apiStocks = List.of(
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX")
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(apiGroups);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), eq(List.of("001"))))
+                    .willReturn(Collections.emptyList());
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(apiStocks);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).deleteByUserIdAndGroupCodeNotIn(TEST_USER_ID, List.of("001"));
+        }
+
+        @Test
+        @DisplayName("2. 종목 업데이트 시 백필 플래그 보존")
+        void 종목_업데이트_시_백필_플래그_보존() {
+            // given
+            var existingGroup = WatchlistGroup.builder()
+                    .userId(TEST_USER_ID)
+                    .groupCode("001")
+                    .groupName("테스트그룹")
+                    .type("1")
+                    .build();
+
+            // 백필 완료된 기존 종목 추가
+            var existingStock = com.custom.trader.watchlist.entity.WatchlistStock.builder()
+                    .stockCode("005930")
+                    .stockName("삼성전자")
+                    .marketCode(com.custom.trader.common.enums.MarketCode.KRX)
+                    .assetType(com.custom.trader.common.enums.AssetType.DOMESTIC_STOCK)
+                    .build();
+            existingStock.markBackfillCompleted(); // 백필 완료 상태로 설정
+            existingGroup.addStock(existingStock);
+
+            var apiGroups = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var apiStocks = List.of(
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자(변경됨)", "KRX") // 종목명 변경
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(apiGroups);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), eq(List.of("001"))))
+                    .willReturn(List.of(existingGroup));
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(apiStocks);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+            var updatedStock = savedGroup.getStocks().stream()
+                    .filter(s -> "005930".equals(s.getStockCode()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(updatedStock.getStockName()).isEqualTo("삼성전자(변경됨)"); // 이름은 변경됨
+            assertThat(updatedStock.isBackfillCompleted()).isTrue(); // 백필 플래그는 보존됨
+        }
+
+        @Test
+        @DisplayName("3. 신규 종목 추가 시 백필 플래그 false 확인")
+        void 신규_종목_추가_시_백필_플래그_false() {
+            // given
+            var existingGroup = WatchlistGroup.builder()
+                    .userId(TEST_USER_ID)
+                    .groupCode("001")
+                    .groupName("테스트그룹")
+                    .type("1")
+                    .build();
+
+            var apiGroups = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var apiStocks = List.of(
+                    new WatchlistStockResponse.StockItem("J", "000660", "SK하이닉스", "KRX") // 신규 종목
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(apiGroups);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), eq(List.of("001"))))
+                    .willReturn(List.of(existingGroup));
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(apiStocks);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+            var newStock = savedGroup.getStocks().stream()
+                    .filter(s -> "000660".equals(s.getStockCode()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(newStock.getStockCode()).isEqualTo("000660");
+            assertThat(newStock.getStockName()).isEqualTo("SK하이닉스");
+            assertThat(newStock.isBackfillCompleted()).isFalse(); // 신규 종목은 백필 필요
+        }
+
+        @Test
+        @DisplayName("4. 종목 삭제 감지 - API에 없는 종목이 DB에서 삭제되는지 확인")
+        void API에_없는_종목_삭제() {
+            // given
+            var existingGroup = WatchlistGroup.builder()
+                    .userId(TEST_USER_ID)
+                    .groupCode("001")
+                    .groupName("테스트그룹")
+                    .type("1")
+                    .build();
+
+            // 기존 종목 2개 추가
+            var stock1 = com.custom.trader.watchlist.entity.WatchlistStock.builder()
+                    .stockCode("005930")
+                    .stockName("삼성전자")
+                    .marketCode(com.custom.trader.common.enums.MarketCode.KRX)
+                    .assetType(com.custom.trader.common.enums.AssetType.DOMESTIC_STOCK)
+                    .build();
+            var stock2 = com.custom.trader.watchlist.entity.WatchlistStock.builder()
+                    .stockCode("000660")
+                    .stockName("SK하이닉스")
+                    .marketCode(com.custom.trader.common.enums.MarketCode.KRX)
+                    .assetType(com.custom.trader.common.enums.AssetType.DOMESTIC_STOCK)
+                    .build();
+            existingGroup.addStock(stock1);
+            existingGroup.addStock(stock2);
+
+            var apiGroups = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var apiStocks = List.of(
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자", "KRX") // stock2는 API에 없음
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(apiGroups);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), eq(List.of("001"))))
+                    .willReturn(List.of(existingGroup));
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(apiStocks);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+
+            assertThat(savedGroup.getStocks()).hasSize(1); // SK하이닉스 삭제됨
+            assertThat(savedGroup.getStocks().get(0).getStockCode()).isEqualTo("005930");
+        }
+
+        @Test
+        @DisplayName("5. 복합 시나리오 - 추가/업데이트/삭제가 동시에 발생")
+        void 복합_시나리오_추가_업데이트_삭제() {
+            // given
+            var existingGroup = WatchlistGroup.builder()
+                    .userId(TEST_USER_ID)
+                    .groupCode("001")
+                    .groupName("테스트그룹")
+                    .type("1")
+                    .build();
+
+            // 기존 종목 2개 (1개는 백필 완료, 1개는 미완료)
+            var existingStock1 = com.custom.trader.watchlist.entity.WatchlistStock.builder()
+                    .stockCode("005930")
+                    .stockName("삼성전자")
+                    .marketCode(com.custom.trader.common.enums.MarketCode.KRX)
+                    .assetType(com.custom.trader.common.enums.AssetType.DOMESTIC_STOCK)
+                    .build();
+            existingStock1.markBackfillCompleted();
+
+            var existingStock2 = com.custom.trader.watchlist.entity.WatchlistStock.builder()
+                    .stockCode("000660")
+                    .stockName("SK하이닉스")
+                    .marketCode(com.custom.trader.common.enums.MarketCode.KRX)
+                    .assetType(com.custom.trader.common.enums.AssetType.DOMESTIC_STOCK)
+                    .build();
+
+            existingGroup.addStock(existingStock1);
+            existingGroup.addStock(existingStock2);
+
+            var apiGroups = List.of(
+                    new WatchlistGroupResponse.GroupItem("001", "테스트그룹")
+            );
+            var apiStocks = List.of(
+                    new WatchlistStockResponse.StockItem("J", "005930", "삼성전자(수정됨)", "KRX"), // 업데이트
+                    new WatchlistStockResponse.StockItem("J", "035420", "NAVER", "KRX") // 신규 추가
+                    // 000660(SK하이닉스)는 API에 없음 → 삭제
+            );
+
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(apiGroups);
+            given(watchlistGroupRepository.findByUserIdAndGroupCodeIn(eq(TEST_USER_ID), eq(List.of("001"))))
+                    .willReturn(List.of(existingGroup));
+            given(kisWatchlistService.getStocksByGroup("001")).willReturn(apiStocks);
+            given(watchlistGroupRepository.saveAll(any()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).saveAll(groupListCaptor.capture());
+            var savedGroup = groupListCaptor.getValue().get(0);
+
+            assertThat(savedGroup.getStocks()).hasSize(2); // 총 2개 (1개 업데이트, 1개 추가, 1개 삭제)
+
+            // 업데이트된 종목: 백필 플래그 보존 확인
+            var updatedStock = savedGroup.getStocks().stream()
+                    .filter(s -> "005930".equals(s.getStockCode()))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(updatedStock.getStockName()).isEqualTo("삼성전자(수정됨)");
+            assertThat(updatedStock.isBackfillCompleted()).isTrue(); // 백필 플래그 보존
+
+            // 신규 추가된 종목
+            var newStock = savedGroup.getStocks().stream()
+                    .filter(s -> "035420".equals(s.getStockCode()))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(newStock.getStockName()).isEqualTo("NAVER");
+            assertThat(newStock.isBackfillCompleted()).isFalse(); // 신규는 백필 필요
+
+            // 삭제된 종목 확인
+            var deletedStock = savedGroup.getStocks().stream()
+                    .filter(s -> "000660".equals(s.getStockCode()))
+                    .findFirst();
+            assertThat(deletedStock).isEmpty(); // SK하이닉스 삭제됨
+        }
+
+        @Test
+        @DisplayName("API가 빈 그룹 목록 반환 시 모든 그룹 삭제")
+        void API_빈_그룹_목록_반환시_모든_그룹_삭제() {
+            // given
+            given(kisProperties.userId()).willReturn(TEST_USER_ID);
+            given(kisWatchlistService.getWatchlistGroups()).willReturn(Collections.emptyList());
+
+            // when
+            watchlistService.syncWatchlist();
+
+            // then
+            verify(watchlistGroupRepository).deleteByUserId(TEST_USER_ID);
+            verify(watchlistGroupRepository, never()).deleteByUserIdAndGroupCodeNotIn(any(), any());
+            verify(watchlistGroupRepository, never()).saveAll(any());
         }
     }
 }
