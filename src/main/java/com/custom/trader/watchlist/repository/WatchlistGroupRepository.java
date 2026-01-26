@@ -13,4 +13,8 @@ public interface WatchlistGroupRepository extends JpaRepository<WatchlistGroup, 
     Optional<WatchlistGroup> findByUserIdAndGroupCode(String userId, String groupCode);
 
     List<WatchlistGroup> findByUserIdAndGroupCodeIn(String userId, List<String> groupCodes);
+
+    void deleteByUserId(String userId);
+
+    void deleteByUserIdAndGroupCodeNotIn(String userId, List<String> groupCodes);
 }
