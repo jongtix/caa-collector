@@ -20,8 +20,8 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 
 ### 현재 구현 상태
 
-- ✅ **Phase 1 완료 (95%)**: KIS API 연동, Watchlist/StockPrice 도메인, 스케줄러, 테스트
-- 🚧 **Phase 2 진행 중 (0%)**: 문서화, 관심종목 편집 반영, 실시간 시세, AI/Notifier 통신
+- ✅ **Phase 1 완료 (100%)**: KIS API 연동, Watchlist/StockPrice 도메인, 스케줄러, 테스트
+- 🚧 **Phase 2 진행 중 (15%)**: 문서화, 관심종목 편집 반영 완료, 실시간 시세/AI/Notifier 통신 예정
 - ❌ **Phase 3 미구현**: 주문 실행, Circuit Breaker, Distributed Tracing
 
 ---
@@ -164,9 +164,17 @@ com.custom.trader
 │   ├── overseas/                # 해외 주식/지수 일간 가격
 │   │   ├── entity/              # OverseasStockDailyPrice, OverseasIndexDailyPrice
 │   │   └── repository/          # Spring Data JPA Repository
+│   ├── strategy/                # AssetType별 처리 전략 (Strategy Pattern)
+│   │   ├── StockPriceStrategy            # Strategy 인터페이스
+│   │   ├── DomesticStockStrategy         # 국내 주식 처리 전략
+│   │   ├── DomesticIndexStrategy         # 국내 지수 처리 전략
+│   │   ├── OverseasStockStrategy         # 해외 주식 처리 전략
+│   │   ├── OverseasIndexStrategy         # 해외 지수 처리 전략
+│   │   └── StockPriceStrategyFactory     # AssetType별 Strategy 제공
 │   ├── service/                 # 가격 수집 서비스
-│   │   ├── StockPriceCollectorService  # 일간 수집, 백필 로직
-│   │   └── StockBackfillService        # 백필 전용 서비스
+│   │   ├── StockPriceCollectionService   # 일간 수집, 백필 로직
+│   │   ├── StockBackfillService          # 백필 전용 서비스
+│   │   └── StockPricePersistenceService  # 저장 로직
 │   └── scheduler/               # StockPriceScheduler (03:00 백필, 18:30 일간 수집)
 └── watchlist/                   # 관심종목 도메인
     ├── entity/                  # WatchlistGroup, WatchlistStock (JPA)
@@ -179,7 +187,7 @@ com.custom.trader
 
 ## Key Features
 
-### ✅ 구현 완료 (Phase 1: 95%)
+### ✅ 구현 완료 (Phase 1: 100% + Phase 2 Week 1: 100%)
 
 1. **KIS API 연동**
    - OAuth2 토큰 발급 및 자동 갱신 (Redis 캐싱)
@@ -187,14 +195,17 @@ com.custom.trader
    - Rate Limiter (초당 20회 제한)
 
 2. **관심종목 동기화**
-   - KIS API → MySQL 동기화
-   - 그룹/종목 자동 생성 및 업데이트
-   - 백필 상태 플래그 관리
+   - KIS API → MySQL 3-way 동기화
+   - 그룹/종목 자동 생성, 업데이트, 삭제
+   - API 기준 삭제 전략 (API에 없으면 DB 삭제)
+   - 백필 상태 플래그 보존
+   - 방어적 프로그래밍 (null/중복 stockCode 처리)
 
 3. **주식 가격 수집**
    - 4가지 타입 지원: 국내/해외 주식/지수
+   - Strategy Pattern 적용 (AssetType별 처리 전략)
    - 일간 수집 (18:30)
-   - 과거 데이터 백필 (03:00)
+   - 과거 데이터 백필 (03:00, 30일)
 
 4. **스케줄러**
    - ShedLock 분산 락 (중복 실행 방지)
@@ -202,17 +213,14 @@ com.custom.trader
    - StockPriceScheduler (활성화)
 
 5. **테스트**
-   - 단위 테스트 (Mockito)
-   - 통합 테스트 (WireMock)
+   - 단위 테스트 (Mockito) - 26개
+   - 통합 테스트 (WireMock) - 5개
+   - 총 31개 테스트 통과
    - 커버리지 80% 이상
 
-### ❌ 미구현 (Phase 2-3: 0%)
+### ❌ 미구현 (Phase 2-3)
 
-1. **관심종목 편집 반영** (Phase 2 Week 1)
-   - DB 스키마 변경
-   - 편집 감지 및 반영 로직
-
-2. **실시간 시세 조회** (Phase 2 Week 2)
+1. **실시간 시세 조회** (Phase 2 Week 2)
    - KIS API 실시간 엔드포인트 연동
    - RealtimePriceScheduler (장중 1분 간격)
 
