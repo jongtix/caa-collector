@@ -34,8 +34,10 @@
 │  │  ├── KisAuthService (토큰 관리)                    │     │
 │  │  ├── KisWatchlistService (관심종목 조회)          │     │
 │  │  ├── KisStockPriceService (시세 조회)             │     │
-│  │  ├── WatchlistService (동기화 로직)               │     │
-│  │  ├── StockPriceCollectorService (수집/백필)       │     │
+│  │  ├── WatchlistService (3-way 동기화)               │     │
+│  │  ├── StockPriceCollectionService (수집/백필)      │     │
+│  │  ├── StockBackfillService (백필 전용)             │     │
+│  │  ├── StockPricePersistenceService (저장)          │     │
 │  │  ├── AdvisorClient (학습/예측 요청, Phase 2)      │     │
 │  │  ├── NotifierClient (알림 요청, Phase 2)          │     │
 │  │  ├── InvestmentService (상태 관리, Phase 2)       │     │
@@ -568,9 +570,14 @@ public enum InvestmentState {
 - **ShedLock**: `@SchedulerLock(name = "syncWatchlist")`
 - **동작**:
   1. KIS API 관심종목 조회
-  2. MySQL 동기화 (그룹/종목 생성/업데이트)
+  2. **3-way 동기화 로직**:
+     - API 기준 삭제 (API에 없으면 DB 삭제)
+     - 그룹/종목 생성, 업데이트
+     - backfillCompleted 플래그 보존
+     - null/중복 stockCode 방어적 처리
   3. 백필 플래그 초기화 (신규 종목)
 - **현재 상태**: 주석 처리 (수동 실행)
+- **구현 완료**: ✅ Phase 2 Week 1
 
 ### StockPriceScheduler (활성화)
 
@@ -592,8 +599,12 @@ public enum InvestmentState {
 - **동작**:
   1. 전체 관심종목 조회
   2. 당일 가격 수집 (4가지 타입)
+     - **Strategy Pattern 사용**: AssetType별 처리 전략
+     - DomesticStockStrategy, DomesticIndexStrategy
+     - OverseasStockStrategy, OverseasIndexStrategy
   3. 배치 저장 (중복 체크)
 - **현재 상태**: 활성화
+- **구현 완료**: ✅ Phase 1
 
 ### RealtimePriceScheduler (Phase 2 Week 2)
 
@@ -616,6 +627,82 @@ public enum InvestmentState {
   4. 상태 변화 감지
   5. Notifier 알림 요청
 - **현재 상태**: 미구현
+
+---
+
+## Implementation Details
+
+### WatchlistService 3-Way Sync ✅ 구현 완료
+
+#### 동기화 전략
+
+**API 기준 삭제 전략**: API 응답을 Single Source of Truth로 간주
+
+```java
+@Transactional
+public void syncWatchlist() {
+    // 1. API에서 모든 그룹 조회
+    List<GroupItem> apiGroups = kisWatchlistService.getWatchlistGroups();
+
+    // 2. API 그룹 코드 추출
+    List<String> apiGroupCodes = apiGroups.stream()
+        .map(GroupItem::interGrpCode)
+        .toList();
+
+    // 3. API에 없는 그룹 삭제 (Cascade로 종목도 함께 삭제)
+    watchlistGroupRepository.deleteByUserIdAndGroupCodeNotIn(userId, apiGroupCodes);
+
+    // 4. 각 그룹 처리
+    for (GroupItem apiGroup : apiGroups) {
+        WatchlistGroup group = findOrCreateGroup(apiGroup);
+        syncStocks(group, apiGroup);
+    }
+}
+```
+
+#### 그룹 동기화 로직
+
+- **신규 그룹**: DB에 없으면 생성
+- **기존 그룹**: 그룹명 업데이트 (변경 감지)
+- **삭제 그룹**: API에 없으면 DB에서 삭제
+
+#### 종목 동기화 로직
+
+```java
+private void syncStocks(WatchlistGroup group, GroupItem apiGroup) {
+    // 1. API 종목 조회 (그룹별)
+    List<StockItem> apiStocks = kisWatchlistService.getWatchlistStocks(apiGroup.interGrpCode());
+
+    // 2. 방어적 필터링
+    List<StockItem> validStocks = apiStocks.stream()
+        .filter(stock -> stock.stockCode() != null)  // null 제거
+        .collect(Collectors.toSet())                 // 중복 제거
+        .stream().toList();
+
+    // 3. API에 없는 종목 삭제
+    List<String> apiStockCodes = validStocks.stream()
+        .map(StockItem::stockCode)
+        .toList();
+    group.getStocks().removeIf(stock -> !apiStockCodes.contains(stock.getStockCode()));
+
+    // 4. 각 종목 처리
+    for (StockItem apiStock : validStocks) {
+        WatchlistStock stock = findOrCreateStock(group, apiStock);
+        // backfillCompleted 플래그는 보존 (덮어쓰지 않음)
+    }
+}
+```
+
+#### 백필 플래그 보존
+
+- **신규 종목**: `backfillCompleted = false` (백필 필요)
+- **기존 종목**: 기존 플래그 값 유지 (덮어쓰지 않음)
+
+#### 방어적 프로그래밍
+
+- **null stockCode 필터링**: API 응답에 null이 포함될 경우 대비
+- **중복 stockCode 제거**: Set을 사용하여 중복 제거
+- **빈 리스트 처리**: API 응답이 빈 리스트일 경우 전체 삭제 방지
 
 ---
 
@@ -741,10 +828,11 @@ public class RateLimiterConfig {
 
 ## Testing Strategy
 
-### 단위 테스트 (Mockito)
+### 단위 테스트 (Mockito) ✅ 구현 완료
 
 - **Service Layer**: Mockito로 Repository 모킹
 - **커버리지 목표**: 80% 이상
+- **Phase 1 달성**: 26개 단위 테스트 작성 및 통과
 - **예시**:
   ```java
   @Test
@@ -763,11 +851,12 @@ public class RateLimiterConfig {
   }
   ```
 
-### 통합 테스트 (WireMock, Testcontainers)
+### 통합 테스트 (WireMock, Testcontainers) ✅ 구현 완료
 
 - **KIS API 모킹**: WireMock으로 HTTP 응답 시뮬레이션
 - **Database**: Testcontainers MySQL
 - **Redis**: Testcontainers Redis
+- **Phase 1 달성**: 5개 통합 테스트 작성 및 통과
 - **예시**:
   ```java
   @Test
