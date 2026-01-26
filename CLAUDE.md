@@ -64,6 +64,16 @@ com.custom.trader
 - **Git 규칙**: `~/.claude/skills/git-convention/SKILL.md`
 - **그 외 정의되지 않은 작업**: `pm` 에이전트와 상의 후 진행
 
+## 대략적인 작업 흐름
+1. 새로운 기능 개발 또는 버그 수정 시 `pm` 에이전트와 상의하여 작업 범위 및 요구사항 정의
+2. `git-master` 에이전트를 사용해 적절한 브랜치 생성
+3. `backend-developer` 에이전트를 활용해 코드 작성 및 리팩토링
+4. `backend-security-coder` 및 `simple-performance-engineer` 에이전트를 통해 보안 및 성능 검토, 수정 사항 반영
+5. `code-reviewer` 에이전트를 사용해 코드 리뷰 수행 및 피드백 반영
+6. `test-architect` 에이전트를 통해 테스트 코드 작성 및 검증
+7. `pm` 에이전트와 최종 검토 및 문서 작성 후 배포 준비
+8. `git-master` 에이전트를 사용해 커밋 메시지 작성 및 푸시
+
 ## Documentation
 
 프로젝트 문서는 `docs/` 폴더에 관리됨:
@@ -76,7 +86,6 @@ com.custom.trader
 - **adr/**: 아키텍처 결정 기록 (Architecture Decision Records)
   - 주요 기술적 결정사항을 문서화
   - 결정 배경, 대안, 결과를 포함
-  - 현재 5개 ADR 관리 중 (배치 쿼리, 토큰 락, Entity 분리, 타임아웃, 인덱싱)
 
 ## External APIs
 
