@@ -35,15 +35,23 @@ com.custom.trader
 │   ├── exception/       # KisApiException
 │   └── service/         # KisAuthService, KisWatchlistService, KisStockPriceService
 ├── stockprice/          # 주식 가격 수집 도메인
-│   ├── domestic/        # 국내 주식 일간 가격 (entity, repository)
-│   ├── overseas/        # 해외 주식 일간 가격 (entity, repository)
+│   ├── domestic/        # 국내 주식/지수 일간 가격 (entity, repository)
+│   ├── overseas/        # 해외 주식/지수 일간 가격 (entity, repository)
 │   ├── strategy/        # AssetType별 처리 전략 (Strategy Pattern)
-│   ├── service/         # StockPriceCollectorService (일간 수집, 백필)
+│   │   ├── StockPriceStrategy.java           # Strategy 인터페이스
+│   │   ├── DomesticStockStrategy.java        # 국내 주식 처리 전략
+│   │   ├── DomesticIndexStrategy.java        # 국내 지수 처리 전략
+│   │   ├── OverseasStockStrategy.java        # 해외 주식 처리 전략
+│   │   ├── OverseasIndexStrategy.java        # 해외 지수 처리 전략
+│   │   └── StockPriceStrategyFactory.java    # AssetType별 Strategy 제공
+│   ├── service/         # StockPriceCollectionService (일간 수집, 백필)
+│   │                    # StockBackfillService (백필 전용)
+│   │                    # StockPricePersistenceService (저장 로직)
 │   └── scheduler/       # StockPriceScheduler (03:00 백필, 18:30 일간 수집)
 └── watchlist/           # 관심종목 도메인
     ├── entity/          # WatchlistGroup, WatchlistStock (JPA)
     ├── repository/      # Spring Data JPA
-    ├── service/         # WatchlistService (동기화 로직)
+    ├── service/         # WatchlistService (3-way 동기화 로직)
     └── scheduler/       # ShedLock 기반 스케줄러 (08:00, 18:00 동기화)
 ```
 
@@ -76,14 +84,16 @@ com.custom.trader
 
 ## Documentation
 
-프로젝트 문서는 `docs/` 폴더에 관리됨:
+프로젝트 문서는 `docs/` 폴더에 관리됨 (Phase 2 Week 1 완료):
 
-- **README.md**: 프로젝트 개요 및 시작 가이드
-- **PRD.md**: 제품 요구사항 명세 (Product Requirements Document)
-- **TECHSPEC.md**: 기술 명세서 (Technical Specification)
-- **MILESTONE.md**: 개발 일정 및 마일스톤
-- **TODO.md**: 작업 항목 및 우선순위
-- **adr/**: 아키텍처 결정 기록 (Architecture Decision Records)
+- **README.md**: 프로젝트 개요 및 시작 가이드 (최신화 완료)
+- **MILESTONE.md**: 개발 일정 및 마일스톤 (Phase 1 100% 완료, Phase 2 15% 진행 중)
+- **TODO.md**: 작업 항목 및 우선순위 (Week 1 완료 반영)
+- **PRD.md**: 제품 요구사항 명세 (3-way sync 시나리오 추가)
+- **TECHSPEC.md**: 기술 명세서 (Strategy Pattern, 3-way sync 구현 상세 추가)
+- **adr/**: 아키텍처 결정 기록 (현재 10개 ADR)
+  - ADR-0009: Strategy Pattern 도입 (주식 가격 수집)
+  - ADR-0008: Rate Limiter 중앙화
   - 주요 기술적 결정사항을 문서화
   - 결정 배경, 대안, 결과를 포함
 
