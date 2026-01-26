@@ -6,30 +6,25 @@
 
 ## Header
 
-- **Last Updated**: 2026-01-24 (금)
-- **Current Focus**: Phase 2 Week 1 준비 (문서화 + 관심종목 편집 반영)
-- **Next Sprint**: 2026-01-26 (월) ~ 2026-02-01 (일)
+- **Last Updated**: 2026-01-26 (일) 23:00
+- **Current Focus**: Phase 2 Week 1 진행 중 (문서화 작업 진행 중)
+- **Next Sprint**: 2026-02-02 (월) ~ 2026-02-08 (일)
 
 ---
 
 ## Priority 0 (P0) - Critical
 > **Week 1: 2026-01-26 (월) ~ 02-01 (일) - 11시간**
 
-### 📝 프로젝트 문서화 (3.5시간)
-- [ ] `docs/README.md` 작성 (30분)
-  - Project Overview (역할/책임 범위 명시)
-  - Architecture Context (MSA 다이어그램)
-  - Tech Stack
-  - Quick Start (환경 변수, 빌드/실행 명령어)
-  - Directory Structure
-  - Key Features (구현 완료/미완료 구분)
-- [ ] `docs/MILESTONE.md` 작성 (40분)
-  - Vision Statement
-  - Phase 1 완료 내역 (2026-01-12 ~ 01-25)
-  - Phase 2 Week별 계획 (2026-01-26 ~ 02-22)
-  - Phase 3 로드맵 (2026-02-23 ~ 03-29)
-  - Progress Tracking 표
-- [ ] `docs/TODO.md` 작성 (20분)
+### 📝 프로젝트 문서화 (3.5시간, 진행 중)
+- [x] `docs/README.md` 업데이트 (30분)
+  - ✅ 현재 구현 상태 업데이트 (Phase 2 Week 1 완료 반영)
+  - ✅ Directory Structure 업데이트 (strategy 패키지 추가)
+  - ✅ Key Features 업데이트 (관심종목 동기화 개선)
+- [x] `docs/MILESTONE.md` 업데이트 (40분)
+  - ✅ Phase 1 진행률 업데이트 (95% → 100%)
+  - ✅ Phase 2 Week 1 진행률 업데이트 (70% → 90%)
+  - ✅ 관심종목 편집 반영 완료 체크
+- [ ] `docs/TODO.md` 업데이트 (20분)
   - P0/P1/P2 우선순위 분류
   - Week별 작업 목록
   - 예상 시간
@@ -47,28 +42,6 @@
   - Error Handling & Retry 전략
   - Configuration 예시
 
-### 🔧 관심종목 편집 반영 (8시간)
-- [ ] DB 스키마 변경 (1시간)
-  - Migration 스크립트 작성 (필요 시)
-  - `watchlist_group` 컬럼 검토
-  - `watchlist_stock` 컬럼 검토
-- [ ] Entity 수정 (1시간)
-  - `WatchlistGroup.java`: 그룹명 변경 메서드
-  - `WatchlistStock.java`: 종목 정보 업데이트 메서드
-- [ ] Repository 메서드 추가 (1.5시간)
-  - `WatchlistGroupRepository`: 그룹 삭제 메서드
-  - `WatchlistStockRepository`: 종목 삭제 메서드
-  - 배치 업데이트 쿼리 최적화
-- [ ] WatchlistService 로직 구현 (3시간)
-  - 그룹명 변경 감지 로직
-  - 종목 추가/삭제 감지 로직
-  - 백필 플래그 재설정 로직
-  - 트랜잭션 처리
-- [ ] 테스트 작성 (1.5시간)
-  - 그룹명 변경 시나리오 테스트
-  - 종목 추가 시나리오 테스트
-  - 종목 삭제 시나리오 테스트
-  - 백필 플래그 재설정 테스트
 
 ---
 
@@ -261,6 +234,23 @@
 ---
 
 ## Completed (This Week: 2026-01-26 월 ~ 02-01 일)
+
+### ✅ 관심종목 동기화 개선 (2026-01-26)
+- [x] 3-way 동기화 로직 구현 (API 기준 삭제 전략)
+  - API에 없으면 DB에서 삭제 (그룹/종목)
+  - API에 있으면 DB에 추가/업데이트
+  - backfillCompleted 플래그 보존
+- [x] 방어적 프로그래밍 적용
+  - null stockCode 필터링
+  - 중복 stockCode 제거 (Set 사용)
+- [x] Repository 메서드 추가
+  - `WatchlistGroupRepository.deleteByGroupId()`
+  - `WatchlistStockRepository.deleteByStockCode()`
+- [x] 테스트 작성 (총 31개)
+  - 단위 테스트 26개 (모두 통과)
+  - 통합 테스트 5개 (모두 통과)
+- [x] 코드 리뷰 승인 완료
+- [x] 4개 커밋 완료
 
 ### ✅ StockPrice 도메인 리팩터링 (2026-01-26)
 - [x] Strategy Pattern 도입 (6개 파일 생성)
