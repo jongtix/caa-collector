@@ -21,7 +21,7 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 ### 현재 구현 상태
 
 - ✅ **Phase 1 완료 (100%)**: KIS API 연동, Watchlist/StockPrice 도메인, 스케줄러, 테스트
-- 🚧 **Phase 2 진행 중 (15%)**: 문서화, 관심종목 편집 반영 완료, 실시간 시세/AI/Notifier 통신 예정
+- 🚧 **Phase 2 진행 중 (20%)**: 문서화 및 관심종목 편집 반영 완료, 실시간 시세/AI/Notifier 통신 예정
 - ❌ **Phase 3 미구현**: 주문 실행, Circuit Breaker, Distributed Tracing
 
 ---
