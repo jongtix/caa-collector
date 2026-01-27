@@ -455,6 +455,12 @@ CAA Collector Service는 **MSA 아키텍처의 컨트롤 타워**로서 다음 �
 
 ## References
 
-- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 전체 아키텍처
-- [TECHSPEC.md](./TECHSPEC.md) - 기술 명세
-- [MILESTONE.md](./MILESTONE.md) - Phase별 진행 상황
+### MSA 전체 문서
+- [README.md](../README.md) - MSA 프로젝트 개요
+- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 아키텍처 설계
+- [MILESTONE.md](../MILESTONE.md) - MSA 전체 일정 및 의존성
+- [CLAUDE.md](../CLAUDE.md) - MSA 작업 지침
+
+### Collector 문서
+- [TECHSPEC.md](./TECHSPEC.md) - Collector 기술 명세
+- [MILESTONE.md](./MILESTONE.md) - Collector 일정

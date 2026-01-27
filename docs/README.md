@@ -250,12 +250,17 @@ com.custom.trader
 
 ## Related Documentation
 
-- [MILESTONE.md](./MILESTONE.md) - 중장기 로드맵 및 Phase별 진행 상황
-- [TODO.md](./TODO.md) - 현재 Phase의 단기 작업 목록 및 우선순위
-- [PRD.md](./PRD.md) - 비즈니스 관점의 제품 요구사항 정의
-- [TECHSPEC.md](./TECHSPEC.md) - 개발자를 위한 상세 기술 명세
-- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 전체 아키텍처 설계 문서
-- [CLAUDE.md](../CLAUDE.md) - Claude Code 작업 지침
+### Collector 문서
+- [MILESTONE.md](./MILESTONE.md) - Collector 일정 및 Phase별 진행 상황
+- [TODO.md](./TODO.md) - Collector 단기 작업 목록 및 우선순위
+- [PRD.md](./PRD.md) - Collector 제품 요구사항 정의
+- [TECHSPEC.md](./TECHSPEC.md) - Collector 기술 명세
+
+### MSA 전체 문서
+- [README.md](../README.md) - MSA 프로젝트 첫 진입점
+- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 아키텍처 설계
+- [MILESTONE.md](../MILESTONE.md) - MSA 전체 일정 및 서비스 간 의존성
+- [CLAUDE.md](../CLAUDE.md) - MSA 전체 작업 지침
 
 ---
 

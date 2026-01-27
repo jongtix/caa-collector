@@ -965,8 +965,16 @@ stringData:
 
 ## References
 
-- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 전체 아키텍처
-- [CLAUDE.md](../CLAUDE.md) - 현재 코드 구조 및 빌드 명령어
+### MSA 전체 문서
+- [README.md](../README.md) - MSA 프로젝트 개요
+- [BLUEPRINT.md](../BLUEPRINT.md) - MSA 아키텍처 설계
+- [MILESTONE.md](../MILESTONE.md) - MSA 전체 일정
+- [CLAUDE.md](../CLAUDE.md) - MSA 작업 지침
+
+### Collector 문서
+- [CLAUDE.md](../CLAUDE.md) - Collector 코드 구조 및 빌드 명령어
+
+### 코딩 규칙
 - `.claude/skills/` - 코딩 규칙 및 스타일 가이드
   - `code-style-guide/SKILL.md`
   - `persistence-strategy/SKILL.md`

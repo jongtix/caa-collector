@@ -84,19 +84,29 @@ com.custom.trader
 
 ## Documentation
 
-프로젝트 문서는 `docs/` 폴더에 관리됨 (Phase 2 Week 1 100% 완료):
+### MSA 전체 문서 (루트 레벨)
 
-- **README.md**: 프로젝트 개요 및 시작 가이드 (Phase 2 Week 1 완료 반영)
-- **MILESTONE.md**: 개발 일정 및 마일스톤 (Phase 1 100%, Phase 2 Week 1 100% 완료)
-- **TODO.md**: 작업 항목 및 우선순위 (2026-01-27 최신화)
-- **PRD.md**: 제품 요구사항 명세 (3-way sync 완료, Collector 책임 범위 명확화)
-- **TECHSPEC.md**: 기술 명세서 (Strategy Pattern, 3-way sync 구현 상세)
-- **adr/**: 아키텍처 결정 기록 (현재 10개 ADR)
+Collector는 MSA의 일부이므로, 전체 아키텍처 및 서비스 간 통신은 루트 문서를 참조:
+
+- **`../README.md`**: MSA 프로젝트 첫 진입점 (Quick Start, 서비스 개요)
+- **`../BLUEPRINT.md`**: MSA 아키텍처 설계 (서비스 역할, 워크플로우, API 스펙)
+- **`../MILESTONE.md`**: MSA 전체 일정 및 서비스 간 의존성 관리
+- **`../CLAUDE.md`**: MSA 전체 작업 지침 (서비스 간 조율 원칙, 공통 규칙)
+
+### Collector 서비스 문서 (docs/ 폴더)
+
+Collector 내부 상세는 `docs/` 폴더에 관리됨 (Phase 2 Week 1 100% 완료):
+
+- **README.md**: Collector 개요 및 시작 가이드
+- **MILESTONE.md**: Collector 일정 (Week별 상세, Phase 1 100%, Phase 2 20%)
+- **TODO.md**: Collector 단기 작업 목록 (2026-01-27 최신화)
+- **PRD.md**: Collector 제품 요구사항 명세 (책임 범위 명확화)
+- **TECHSPEC.md**: Collector 기술 명세서 (Strategy Pattern, 3-way sync)
+- **adr/**: Collector 아키텍처 결정 기록 (10개 ADR)
   - ADR-0010: Template Method Pattern 평가
   - ADR-0009: Strategy Pattern 도입 (주식 가격 수집)
   - ADR-0008: Rate Limiter 중앙화
-  - 주요 기술적 결정사항을 문서화
-  - 결정 배경, 대안, 결과를 포함
+  - 결정 배경, 대안, 결과 포함
 
 ## External APIs
 
