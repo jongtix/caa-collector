@@ -21,8 +21,8 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 ### 현재 구현 상태
 
 - ✅ **Phase 1 완료 (100%)**: KIS API 연동, Watchlist/StockPrice 도메인, 스케줄러, 테스트
-- 🚧 **Phase 2 진행 중 (20%)**: 문서화 및 관심종목 편집 반영 완료, 실시간 시세/AI/Notifier 통신 예정
-- ❌ **Phase 3 미구현**: 주문 실행, Circuit Breaker, Distributed Tracing
+- 🚧 **Phase 2 진행 중 (20%)**: 문서화 및 관심종목 편집 반영 완료, 배포 자동화 예정
+- ❌ **Phase 3 미구현**: 실시간 시세 (WebSocket), 주문 실행, 모니터링
 
 ---
 
@@ -220,19 +220,25 @@ com.custom.trader
 
 ### ❌ 미구현 (Phase 2-3)
 
-1. **실시간 시세 조회** (Phase 2 Week 2)
-   - KIS API 실시간 엔드포인트 연동
-   - RealtimePriceScheduler (장중 1분 간격)
+1. **배포 자동화** (Phase 2 Week 2-3)
+   - Docker 컨테이너화
+   - GitHub Actions CI/CD 파이프라인
+   - Watchtower 자동 배포
 
-3. **AI Advisor 통신** (Phase 2 Week 3-4)
+2. **실시간 시세 조회** (Phase 3)
+   - KIS WebSocket API 연동 (승인키 발급, 구독 관리)
+   - 비동기 메시지 처리 및 5초 샘플링
+   - RealtimePrice Entity/Repository 설계
+
+3. **AI Advisor 통신** (Phase 4)
    - REST Client 구현
    - 학습/예측 요청 API 호출
 
-4. **Notifier 통신** (Phase 2 Week 3-4)
+4. **Notifier 통신** (Phase 4)
    - REST Client 구현
    - 알림 발송 요청 API 호출
 
-5. **투자 상태 관리** (Phase 2 Week 3-4)
+5. **투자 상태 관리** (Phase 4)
    - InvestmentDecision 엔티티 설계
    - 상태 변화 감지 로직
    - 워크플로우 오케스트레이션
@@ -251,10 +257,10 @@ com.custom.trader
 ## Related Documentation
 
 ### Collector 문서
-- [MILESTONE.md](./MILESTONE.md) - Collector 일정 및 Phase별 진행 상황
-- [TODO.md](./TODO.md) - Collector 단기 작업 목록 및 우선순위
-- [PRD.md](./PRD.md) - Collector 제품 요구사항 정의
-- [TECHSPEC.md](./TECHSPEC.md) - Collector 기술 명세
+- [MILESTONE.md](./docs/MILESTONE.md) - Collector 일정 및 Phase별 진행 상황
+- [TODO.md](./docs/TODO.md) - Collector 단기 작업 목록 및 우선순위
+- [PRD.md](./docs/PRD.md) - Collector 제품 요구사항 정의
+- [TECHSPEC.md](./docs/TECHSPEC.md) - Collector 기술 명세
 
 ### MSA 전체 문서
 - [README.md](../README.md) - MSA 프로젝트 첫 진입점

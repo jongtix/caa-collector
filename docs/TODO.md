@@ -16,7 +16,7 @@
 > **Week 1: 2026-01-26 (월) ~ 02-01 (일) - 11시간**
 
 ### 📝 프로젝트 문서화 (3.5시간, 완료)
-- [x] `docs/README.md` 업데이트 (30분)
+- [x] `README.md` 업데이트 (30분)
   - ✅ 현재 구현 상태 업데이트 (Phase 2 Week 1 완료 반영)
   - ✅ Directory Structure 업데이트 (strategy 패키지 추가)
   - ✅ Key Features 업데이트 (관심종목 동기화 개선)
@@ -47,71 +47,107 @@
 ---
 
 ## Priority 1 (P1) - Important
-> **Week 2: 2026-01-27 (화) ~ 02-08 (일) - 15시간**
+> **Week 2-3: 2026-01-28 (화) ~ 02-22 (일) - 44시간**
 
-### 📡 실시간 시세 조회 기능 (WebSocket 방식, 15시간)
-- [ ] KIS WebSocket API 스펙 조사 및 승인키 발급 (2시간)
-  - 승인키 발급 API: POST `/oauth2/Approval`
-  - 웹소켓 엔드포인트:
-    - 실전투자: `ws://ops.koreainvestment.com:21000`
-    - 모의투자: `ws://ops.koreainvestment.com:31000`
-  - TR 코드 확인:
-    - `H0STCNT0`: 실시간 주식 체결가
-    - `H0STASP0`: 실시간 호가
-    - `H0STCNI0`: 체결 통보
-  - 구독 제한: 최대 20개 (H0STCNT0 + H0STASP0) + 1개 (H0STCNI0)
-  - 메시지 포맷 파악 (JSON 헤더/바디 구조)
-- [ ] WebSocketClient 구현 (4시간)
-  - `spring-boot-starter-websocket` 의존성 추가
-  - `KisWebSocketManager`: 연결 관리
-    - 승인키 자동 발급 및 갱신
-    - 웹소켓 연결/재연결 (지수 백오프: 1s, 2s, 4s, 8s, 16s)
-    - 하트비트 (30초 간격 Ping)
-    - 최대 재시도 5회
-  - `KisWebSocketHandler`: 메시지 핸들러
-    - `afterConnectionEstablished()`: 연결 성공 시 콜백
-    - `handleTextMessage()`: 메시지 수신 처리
-    - `handleTransportError()`: 에러 처리
-  - `KisWebSocketHealthIndicator`: Health Check 통합
-- [ ] RealtimePrice Entity/Repository 설계 (2시간)
-  - `RealtimeStockPrice` Entity 설계
-    - `id` (BIGINT, PK, Auto Increment)
-    - `stock_code`, `market_code` (복합 유니크 제약)
-    - `current_price`, `change_rate`, `volume`
-    - `last_updated_at` (틱 수신 시간)
-    - `bid_price`, `ask_price` (선택)
-  - Repository 구현 (upsert 로직)
-  - DDL 작성
-- [ ] SubscriptionManager 및 MessageHandler 구현 (2.5시간)
-  - `RealtimeSubscriptionService`: 구독 관리
-    - `subscribe(stockCode)`: 종목 구독
-    - `unsubscribe(stockCode)`: 구독 해제
-    - `syncSubscriptions()`: WatchlistStock 기준 동기화
-    - `ConcurrentHashMap`으로 구독 상태 추적
-  - `RealtimePriceMessageHandler`: 메시지 처리
-    - JSON 파싱 (Jackson ObjectMapper)
-    - `RealtimePriceMessage` record → Entity 변환
-    - 비동기 처리 (ExecutorService, 스레드 풀 5개)
-    - Back-pressure 처리 (Semaphore 100)
-- [ ] RealtimePriceService 통합 및 샘플링 (2시간)
-  - `RealtimePriceService`: 저장 로직
-    - Upsert (stock_code, market_code 기준)
-  - `RealtimePriceSampler`: 5초 샘플링
-    - 메모리 버퍼 (`ConcurrentHashMap`)
-    - `@Scheduled(fixedRate = 5000)` 배치 저장
-  - `TradingHoursScheduler`: 장 시작/종료 관리
-    - 09:00 장 시작 → 자동 구독
-    - 15:30 장 마감 → 전체 구독 해제
-- [ ] 테스트 작성 (2.5시간)
-  - `MockWebSocketServer` 구현
-  - 단위 테스트 (Mockito)
-    - `KisWebSocketManager` 연결/재연결 테스트
-    - `RealtimeSubscriptionService` 구독 관리 테스트
-    - `RealtimePriceMessageHandler` 파싱 테스트
-  - 통합 테스트 (MockWebSocketServer)
-    - 실시간 시세 수신 → DB 저장 검증
-    - 재연결 시나리오 (연결 끊김 → 자동 재연결 → 재구독)
-    - 샘플링 로직 검증 (5초 간격 배치 저장)
+### 🐳 배포 자동화 전체 (44시간)
+
+> **범위**: MSA 공통 인프라 (Collector 우선 적용)
+> - Docker Compose로 Collector + MySQL + Redis 통합 배포
+> - GitHub Actions는 MSA 루트에 워크플로우 생성
+> - 향후 서비스 추가 시 `docker-compose.yml` 확장
+
+#### 1️⃣ 컨테이너화 (8시간)
+- [ ] Dockerfile 작성 (Multi-stage build)
+  - Spring Boot 최적화 (JAR 레이어 분리)
+  - 레이어 캐싱 전략 (의존성 → 애플리케이션)
+  - JRE 경량화 (eclipse-temurin:21-jre-alpine)
+- [ ] Docker Compose 구성
+  - MySQL 8.0 컨테이너
+  - Redis 7.0 컨테이너
+  - Collector 서비스 컨테이너
+  - 네트워크 구성 (bridge)
+  - 볼륨 마운트 (데이터 영속성)
+- [ ] 환경 변수 설정
+  - `.env` 파일 구조화
+  - KIS API 인증 정보 (APP_KEY, APP_SECRET)
+  - DB 연결 정보 (URL, USERNAME, PASSWORD)
+  - Redis 연결 정보
+- [ ] 로컬 테스트 및 디버깅
+  - `docker-compose up` 전체 스택 실행
+  - 컨테이너 간 통신 검증
+  - 스케줄러 동작 확인
+
+#### 2️⃣ CI/CD 파이프라인 (9시간)
+- [ ] GitHub Actions 워크플로우 작성
+  - 빌드 단계: `./gradlew build -q`
+  - 테스트 단계: `./gradlew test -q`
+  - 이미지 빌드 단계: `docker build`
+  - 이미지 푸시 단계: `docker push`
+- [ ] Docker Registry 설정
+  - GitHub Container Registry (ghcr.io) 사용
+  - `GITHUB_TOKEN` 인증
+  - 이미지 태그 전략 (latest, version)
+- [ ] 자동 버전 태깅
+  - Semantic Versioning (v1.0.0)
+  - Git Tag 연동 (`git tag -a v1.0.0 -m "..."`)
+  - 태그 푸시 트리거
+- [ ] 빌드 성공/실패 알림
+  - Discord/Slack 웹훅 연동
+  - 빌드 상태 메시지 전송
+- [ ] 통합 테스트 및 디버깅
+  - 워크플로우 실행 검증
+  - 에러 핸들링 확인
+
+#### 3️⃣ 자동 배포 (10시간)
+- [ ] Watchtower 설정 및 테스트
+  - Watchtower 컨테이너 추가
+  - 이미지 갱신 감지 (Poll interval: 300s)
+  - 자동 컨테이너 재시작
+- [ ] NAS 환경 배포 스크립트 작성
+  - 초기 환경 설정 스크립트
+  - 시크릿 관리 (.env 안전 관리)
+  - 네트워크 구성 스크립트
+- [ ] Health Check 엔드포인트 구현
+  - `/actuator/health` 확장
+  - `/actuator/readiness` 구현
+  - KIS API 연결 상태 체크
+  - Redis/MySQL 연결 상태 체크
+- [ ] 롤백 전략 설계 및 테스트
+  - 이전 이미지 버전 복구 프로세스
+  - 배포 실패 시 자동 롤백
+  - 롤백 시나리오 테스트
+
+#### 4️⃣ 모니터링 및 관리 (10시간)
+- [ ] Portainer 연동 및 대시보드 구성
+  - 컨테이너 상태 시각화
+  - 로그 뷰어 설정
+  - 컨테이너 재시작 관리
+- [ ] 로그 수집 전략 구현
+  - JSON 포맷 로그 출력 (Logback 설정)
+  - 로그 레벨 표준화 (INFO, WARN, ERROR)
+  - 컨테이너 로그 수집 (`docker logs`)
+- [ ] 리소스 제한 설정
+  - NAS 환경 (8GB RAM) 최적화
+  - CPU 제한 (cpus: 2.0)
+  - 메모리 제한 (mem_limit: 2G)
+- [ ] 백업 및 복구 프로세스
+  - MySQL 백업 스크립트 (mysqldump)
+  - 볼륨 백업 전략 (docker volume)
+  - 복구 테스트 (restore 검증)
+
+#### 5️⃣ 문서화 (7시간)
+- [ ] DEPLOYMENT.md 작성
+  - 배포 가이드 (단계별 설명)
+  - 환경 변수 설명 (필수/선택)
+  - 트러블슈팅 FAQ
+- [ ] ADR-0012-deployment-automation.md
+  - 배포 전략 결정 배경
+  - Docker vs K8s 비교
+  - Watchtower 선택 이유
+- [ ] 로컬 개발 환경 가이드
+  - Docker Compose로 전체 스택 실행
+  - 개발 모드 vs 운영 모드 차이
+  - 컨테이너 디버깅 팁
 
 ---
 
@@ -277,7 +313,7 @@
 ## Completed (This Week: 2026-01-26 월 ~ 02-01 일)
 
 ### ✅ 프로젝트 문서화 (2026-01-27)
-- [x] `docs/README.md` 업데이트 (30분)
+- [x] `README.md` 업데이트 (30분)
   - 현재 구현 상태 업데이트 (Phase 2 Week 1 완료 반영)
   - Directory Structure 업데이트 (strategy 패키지 추가)
   - Key Features 업데이트 (관심종목 동기화 개선)
