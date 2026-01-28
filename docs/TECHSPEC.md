@@ -562,6 +562,459 @@ public enum InvestmentState {
 
 ---
 
+## WebSocket Architecture (Phase 2 Week 2)
+
+### Overview
+
+실시간 시세 조회는 REST API 폴링 방식 대신 **WebSocket 기반 구독 방식**을 채택합니다.
+
+**채택 이유**:
+- **즉시성**: 가격 변화 시 즉시 푸시 수신 (ms 단위)
+- **효율성**: Rate Limiter 우회 (한 번 연결 → 지속 수신)
+- **정확성**: 1분 간격이 아닌 실시간 틱 데이터
+- **네트워크 효율**: 불필요한 폴링 제거
+
+### Connection Management
+
+#### WebSocket Endpoints
+
+```yaml
+# 실전투자
+ws://ops.koreainvestment.com:21000
+
+# 모의투자
+ws://ops.koreainvestment.com:31000
+```
+
+#### Authentication Flow
+
+1. **승인키 발급** (REST API)
+   ```http
+   POST https://openapi.koreainvestment.com:9443/oauth2/Approval
+   Content-Type: application/json
+
+   {
+     "grant_type": "client_credentials",
+     "appkey": "{APP_KEY}",
+     "secretkey": "{APP_SECRET}"
+   }
+   ```
+
+   **Response**:
+   ```json
+   {
+     "approval_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+     "expires_in": 86400
+   }
+   ```
+
+2. **WebSocket 연결** (승인키 포함)
+   ```java
+   WebSocketStompClient client = new WebSocketStompClient(
+       new StandardWebSocketClient()
+   );
+   client.connect(WS_URL, new MyWebSocketHandler());
+   ```
+
+#### Reconnection Strategy
+
+- **지수 백오프**: 1s, 2s, 4s, 8s, 16s
+- **최대 재시도**: 5회
+- **재연결 시**: 기존 구독 목록 자동 복원
+- **Heartbeat**: 30초 간격 Ping/Pong
+
+```java
+public class KisWebSocketManager {
+    private static final int[] BACKOFF_DELAYS = {1000, 2000, 4000, 8000, 16000};
+    private static final int MAX_RECONNECT_ATTEMPTS = 5;
+
+    public void reconnect() {
+        for (int attempt = 0; attempt < MAX_RECONNECT_ATTEMPTS; attempt++) {
+            try {
+                Thread.sleep(BACKOFF_DELAYS[attempt]);
+                connect();
+                restoreSubscriptions(); // 재구독
+                return;
+            } catch (Exception e) {
+                log.warn("Reconnect attempt {} failed", attempt + 1);
+            }
+        }
+        notifyReconnectFailed();
+    }
+}
+```
+
+### Subscription Model
+
+#### TR Codes (거래유형 코드)
+
+| TR Code | Description | 용도 |
+|---------|-------------|------|
+| `H0STCNT0` | 실시간 주식 체결가 | 현재가, 체결량, 등락률 |
+| `H0STASP0` | 실시간 호가 | 매수/매도 호가, 잔량 |
+| `H0STCNI0` | 체결 통보 | 주문 체결 알림 |
+
+#### Subscription Limits
+
+- **H0STCNT0 + H0STASP0**: 최대 20개 종목
+- **H0STCNI0**: 최대 1개
+- **총합**: 최대 21개 동시 구독
+
+#### Subscribe Message Format
+
+```json
+{
+  "header": {
+    "approval_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "custtype": "P",
+    "tr_type": "1",
+    "content-type": "utf-8"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0STCNT0",
+      "tr_key": "005930"
+    }
+  }
+}
+```
+
+**Parameters**:
+- `custtype`: "P" (개인), "B" (법인)
+- `tr_type`: "1" (구독), "2" (구독 해제)
+- `tr_id`: 거래유형 코드
+- `tr_key`: 종목 코드 (6자리)
+
+#### Unsubscribe Message Format
+
+```json
+{
+  "header": {
+    "approval_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "custtype": "P",
+    "tr_type": "2"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0STCNT0",
+      "tr_key": "005930"
+    }
+  }
+}
+```
+
+### Message Format
+
+#### Response Message (H0STCNT0 - 실시간 체결가)
+
+```json
+{
+  "header": {
+    "tr_id": "H0STCNT0",
+    "tr_key": "005930"
+  },
+  "body": {
+    "rt_cd": "0",
+    "msg_cd": "OPSP0000",
+    "msg1": "정상처리되었습니다",
+    "output": {
+      "MKSC_SHRN_ISCD": "005930",
+      "STCK_CNTG_HOUR": "103000",
+      "STCK_PRPR": "74800",
+      "PRDY_VRSS": "300",
+      "PRDY_VRSS_SIGN": "2",
+      "PRDY_CTRT": "0.40",
+      "ACML_VOL": "12000000",
+      "ACML_TR_PBMN": "897600000000"
+    }
+  }
+}
+```
+
+**주요 필드**:
+- `MKSC_SHRN_ISCD`: 종목 코드
+- `STCK_CNTG_HOUR`: 체결 시간 (HHMMSS)
+- `STCK_PRPR`: 현재가
+- `PRDY_VRSS`: 전일 대비 증감
+- `PRDY_CTRT`: 전일 대비율 (%)
+- `ACML_VOL`: 누적 거래량
+- `ACML_TR_PBMN`: 누적 거래대금
+
+#### Response Parsing
+
+```java
+public record RealtimePriceMessage(
+    String trId,
+    String stockCode,
+    String currentPrice,
+    String changeRate,
+    String volume,
+    String timestamp
+) {
+    public static RealtimePriceMessage from(JsonNode body) {
+        JsonNode output = body.get("output");
+        return new RealtimePriceMessage(
+            body.get("header").get("tr_id").asText(),
+            output.get("MKSC_SHRN_ISCD").asText(),
+            output.get("STCK_PRPR").asText(),
+            output.get("PRDY_CTRT").asText(),
+            output.get("ACML_VOL").asText(),
+            output.get("STCK_CNTG_HOUR").asText()
+        );
+    }
+
+    public RealtimeStockPrice toEntity(String marketCode) {
+        return RealtimeStockPrice.builder()
+            .stockCode(stockCode)
+            .marketCode(marketCode)
+            .currentPrice(new BigDecimal(currentPrice))
+            .changeRate(new BigDecimal(changeRate))
+            .volume(Long.parseLong(volume))
+            .lastUpdatedAt(parseTimestamp(timestamp))
+            .build();
+    }
+}
+```
+
+### Implementation Components
+
+#### KisWebSocketManager
+
+```java
+@Component
+public class KisWebSocketManager {
+    private WebSocketSession session;
+    private final ScheduledExecutorService heartbeatScheduler;
+
+    public void connect() {
+        String approvalKey = getApprovalKey();
+        WebSocketClient client = new StandardWebSocketClient();
+        session = client.doHandshake(
+            new KisWebSocketHandler(),
+            WS_URL
+        ).get();
+    }
+
+    @Scheduled(fixedRate = 30000)
+    public void sendHeartbeat() {
+        if (session != null && session.isOpen()) {
+            session.sendMessage(new TextMessage("{\"ping\": \"pong\"}"));
+        } else {
+            reconnect();
+        }
+    }
+}
+```
+
+#### KisWebSocketHandler
+
+```java
+public class KisWebSocketHandler extends TextWebSocketHandler {
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        log.info("WebSocket connected: {}", session.getId());
+        subscriptionService.syncSubscriptions();
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        messageHandler.handleMessage(message.getPayload());
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        log.error("WebSocket error", exception);
+        webSocketManager.reconnect();
+    }
+}
+```
+
+#### RealtimeSubscriptionService
+
+```java
+@Service
+public class RealtimeSubscriptionService {
+    private final Map<String, SubscriptionInfo> activeSubscriptions = new ConcurrentHashMap<>();
+
+    public void syncSubscriptions() {
+        List<WatchlistStock> stocks = watchlistStockRepository.findAll();
+        Set<String> targetCodes = stocks.stream()
+            .map(WatchlistStock::getStockCode)
+            .collect(Collectors.toSet());
+
+        // 구독 추가
+        targetCodes.stream()
+            .filter(code -> !activeSubscriptions.containsKey(code))
+            .forEach(this::subscribe);
+
+        // 구독 해제
+        activeSubscriptions.keySet().stream()
+            .filter(code -> !targetCodes.contains(code))
+            .forEach(this::unsubscribe);
+    }
+
+    private void subscribe(String stockCode) {
+        String message = buildSubscribeMessage(stockCode, "H0STCNT0");
+        webSocketSession.sendMessage(new TextMessage(message));
+        activeSubscriptions.put(stockCode, new SubscriptionInfo(stockCode, Instant.now()));
+        log.info("Subscribed: {}", stockCode);
+    }
+}
+```
+
+#### RealtimePriceMessageHandler
+
+```java
+@Component
+public class RealtimePriceMessageHandler {
+    private final ExecutorService messageExecutor = Executors.newFixedThreadPool(5);
+    private final Semaphore processingLimit = new Semaphore(100);
+
+    public void handleMessage(String message) {
+        if (processingLimit.tryAcquire()) {
+            messageExecutor.submit(() -> {
+                try {
+                    RealtimePriceMessage parsed = parseMessage(message);
+                    realtimePriceSampler.buffer(parsed);
+                } catch (Exception e) {
+                    log.error("Message processing failed", e);
+                } finally {
+                    processingLimit.release();
+                }
+            });
+        } else {
+            log.warn("Back-pressure triggered, dropping message");
+            metricsService.incrementDroppedMessages();
+        }
+    }
+}
+```
+
+#### RealtimePriceSampler (5초 샘플링)
+
+```java
+@Component
+public class RealtimePriceSampler {
+    private final Map<String, RealtimeStockPrice> buffer = new ConcurrentHashMap<>();
+
+    public void buffer(RealtimePriceMessage message) {
+        RealtimeStockPrice entity = message.toEntity("KOSPI");
+        buffer.put(message.stockCode(), entity);
+    }
+
+    @Scheduled(fixedRate = 5000)
+    public void flushBuffer() {
+        if (!buffer.isEmpty()) {
+            List<RealtimeStockPrice> batch = new ArrayList<>(buffer.values());
+            repository.saveAll(batch);
+            buffer.clear();
+            log.info("Flushed {} realtime prices", batch.size());
+        }
+    }
+}
+```
+
+### Database Schema (RealtimeStockPrice)
+
+```sql
+CREATE TABLE realtime_stock_price (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(20) NOT NULL,
+    market_code VARCHAR(10) NOT NULL,
+    current_price DECIMAL(15, 2) NOT NULL,
+    change_rate DECIMAL(10, 4) NOT NULL,
+    volume BIGINT NOT NULL,
+    last_updated_at DATETIME(6) NOT NULL,
+    bid_price DECIMAL(15, 2),
+    ask_price DECIMAL(15, 2),
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT uk_realtime_stock_price UNIQUE (stock_code, market_code),
+    INDEX idx_realtime_stock_price_updated (last_updated_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+### Trading Hours Management
+
+```java
+@Component
+public class TradingHoursScheduler {
+
+    @Scheduled(cron = "0 0 9 * * MON-FRI")
+    public void onMarketOpen() {
+        webSocketManager.connect();
+        subscriptionService.syncSubscriptions();
+        log.info("Market opened, WebSocket connected");
+    }
+
+    @Scheduled(cron = "0 30 15 * * MON-FRI")
+    public void onMarketClose() {
+        subscriptionService.unsubscribeAll();
+        webSocketManager.disconnect();
+        log.info("Market closed, WebSocket disconnected");
+    }
+}
+```
+
+### Error Handling
+
+| Error Type | Strategy | Retry |
+|-----------|----------|-------|
+| **Connection Failure** | 재연결 (지수 백오프) | 5회 |
+| **Connection Lost** | 즉시 재연결 + 재구독 | 5회 |
+| **Parse Error** | 로그 + 메시지 버리기 | 없음 |
+| **Heartbeat Timeout** | Ping 전송 → 응답 없으면 재연결 | 5회 |
+| **Subscription Limit** | 구독 목록 정리 후 재시도 | 1회 |
+
+### Configuration
+
+```yaml
+kis:
+  base-url: https://openapi.koreainvestment.com:9443
+  user-id: ${KIS_ID}
+  accounts:
+    - name: 연금저축
+      account-number: ${KIS_ACCOUNT_PENSION_NUMBER}
+      app-key: ${KIS_ACCOUNT_PENSION_APP_KEY}
+      app-secret: ${KIS_ACCOUNT_PENSION_APP_SECRET}
+  websocket:
+    approval-url: /oauth2/Approval
+    ws-url: ws://ops.koreainvestment.com:21000
+    heartbeat-interval: 30000
+    reconnect-max-attempts: 5
+    reconnect-delay-ms: 5000
+    message-executor:
+      core-pool-size: 5
+      max-pool-size: 10
+      queue-capacity: 200
+```
+
+### Health Check
+
+```java
+@Component
+public class KisWebSocketHealthIndicator implements HealthIndicator {
+
+    @Override
+    public Health health() {
+        if (webSocketManager.isConnected()) {
+            return Health.up()
+                .withDetail("state", webSocketManager.getConnectionState())
+                .withDetail("subscriptions", subscriptionService.getActiveCount())
+                .withDetail("lastHeartbeat", webSocketManager.getLastHeartbeatTime())
+                .build();
+        }
+        return Health.down()
+            .withDetail("state", webSocketManager.getConnectionState())
+            .withDetail("lastError", webSocketManager.getLastError())
+            .build();
+    }
+}
+```
+
+---
+
 ## Scheduler Specifications
 
 ### WatchlistScheduler (비활성화)
