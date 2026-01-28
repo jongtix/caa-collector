@@ -93,16 +93,20 @@ Collector는 MSA의 일부이므로, 전체 아키텍처 및 서비스 간 통�
 - **`../MILESTONE.md`**: MSA 전체 일정 및 서비스 간 의존성 관리
 - **`../CLAUDE.md`**: MSA 전체 작업 지침 (서비스 간 조율 원칙, 공통 규칙)
 
-### Collector 서비스 문서 (docs/ 폴더)
+### Collector 서비스 문서
+
+**프로젝트 루트:**
+- **README.md**: Collector 개요 및 시작 가이드
+
+**docs/ 폴더:**
 
 Collector 내부 상세는 `docs/` 폴더에 관리됨 (Phase 2 Week 1 100% 완료):
 
-- **README.md**: Collector 개요 및 시작 가이드
 - **MILESTONE.md**: Collector 일정 (Week별 상세, Phase 1 100%, Phase 2 20%)
-- **TODO.md**: Collector 단기 작업 목록 (2026-01-27 최신화)
+- **TODO.md**: Collector 단기 작업 목록 (2026-01-28 최신화)
 - **PRD.md**: Collector 제품 요구사항 명세 (책임 범위 명확화)
-- **TECHSPEC.md**: Collector 기술 명세서 (Strategy Pattern, 3-way sync)
-- **adr/**: Collector 아키텍처 결정 기록 (10개 ADR)
+- **TECHSPEC.md**: Collector 기술 명세서 (Strategy Pattern, 3-way sync, WebSocket)
+- **adr/**: Collector 아키텍처 결정 기록 (11개 ADR)
 
 ## External APIs
 
