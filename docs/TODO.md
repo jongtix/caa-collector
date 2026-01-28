@@ -47,31 +47,71 @@
 ---
 
 ## Priority 1 (P1) - Important
-> **Week 2: 2026-02-02 (월) ~ 02-08 (일) - 10시간**
+> **Week 2: 2026-01-27 (화) ~ 02-08 (일) - 15시간**
 
-### 📡 실시간 시세 조회 기능 (10시간)
-- [ ] KIS API 연동 (3시간)
-  - 국내 주식 실시간 시세 엔드포인트 조사
-    - GET `/uapi/domestic-stock/v1/quotations/inquire-price`
-  - 해외 주식 실시간 시세 엔드포인트 조사
-    - GET `/uapi/overseas-price/v1/quotations/price`
-  - KisStockPriceService에 실시간 조회 메서드 추가
+### 📡 실시간 시세 조회 기능 (WebSocket 방식, 15시간)
+- [ ] KIS WebSocket API 스펙 조사 및 승인키 발급 (2시간)
+  - 승인키 발급 API: POST `/oauth2/Approval`
+  - 웹소켓 엔드포인트:
+    - 실전투자: `ws://ops.koreainvestment.com:21000`
+    - 모의투자: `ws://ops.koreainvestment.com:31000`
+  - TR 코드 확인:
+    - `H0STCNT0`: 실시간 주식 체결가
+    - `H0STASP0`: 실시간 호가
+    - `H0STCNI0`: 체결 통보
+  - 구독 제한: 최대 20개 (H0STCNT0 + H0STASP0) + 1개 (H0STCNI0)
+  - 메시지 포맷 파악 (JSON 헤더/바디 구조)
+- [ ] WebSocketClient 구현 (4시간)
+  - `spring-boot-starter-websocket` 의존성 추가
+  - `KisWebSocketManager`: 연결 관리
+    - 승인키 자동 발급 및 갱신
+    - 웹소켓 연결/재연결 (지수 백오프: 1s, 2s, 4s, 8s, 16s)
+    - 하트비트 (30초 간격 Ping)
+    - 최대 재시도 5회
+  - `KisWebSocketHandler`: 메시지 핸들러
+    - `afterConnectionEstablished()`: 연결 성공 시 콜백
+    - `handleTextMessage()`: 메시지 수신 처리
+    - `handleTransportError()`: 에러 처리
+  - `KisWebSocketHealthIndicator`: Health Check 통합
 - [ ] RealtimePrice Entity/Repository 설계 (2시간)
   - `RealtimeStockPrice` Entity 설계
-    - `stock_code`, `current_price`, `change_rate`, `volume`, `timestamp`
+    - `id` (BIGINT, PK, Auto Increment)
+    - `stock_code`, `market_code` (복합 유니크 제약)
+    - `current_price`, `change_rate`, `volume`
+    - `last_updated_at` (틱 수신 시간)
+    - `bid_price`, `ask_price` (선택)
   - Repository 구현 (upsert 로직)
   - DDL 작성
-- [ ] RealtimePriceService 구현 (2.5시간)
-  - 실시간 시세 조회 로직
-  - 배치 처리 (한 번에 여러 종목)
-  - 에러 핸들링 (개별 종목 실패 시 다음 종목 계속)
-- [ ] RealtimePriceScheduler 구현 (1.5시간)
-  - cron 설정: `*/1 9-15 * * MON-FRI` (장중 1분 간격)
-  - ShedLock 적용
-  - 로깅 및 모니터링
-- [ ] 테스트 작성 (1시간)
+- [ ] SubscriptionManager 및 MessageHandler 구현 (2.5시간)
+  - `RealtimeSubscriptionService`: 구독 관리
+    - `subscribe(stockCode)`: 종목 구독
+    - `unsubscribe(stockCode)`: 구독 해제
+    - `syncSubscriptions()`: WatchlistStock 기준 동기화
+    - `ConcurrentHashMap`으로 구독 상태 추적
+  - `RealtimePriceMessageHandler`: 메시지 처리
+    - JSON 파싱 (Jackson ObjectMapper)
+    - `RealtimePriceMessage` record → Entity 변환
+    - 비동기 처리 (ExecutorService, 스레드 풀 5개)
+    - Back-pressure 처리 (Semaphore 100)
+- [ ] RealtimePriceService 통합 및 샘플링 (2시간)
+  - `RealtimePriceService`: 저장 로직
+    - Upsert (stock_code, market_code 기준)
+  - `RealtimePriceSampler`: 5초 샘플링
+    - 메모리 버퍼 (`ConcurrentHashMap`)
+    - `@Scheduled(fixedRate = 5000)` 배치 저장
+  - `TradingHoursScheduler`: 장 시작/종료 관리
+    - 09:00 장 시작 → 자동 구독
+    - 15:30 장 마감 → 전체 구독 해제
+- [ ] 테스트 작성 (2.5시간)
+  - `MockWebSocketServer` 구현
   - 단위 테스트 (Mockito)
-  - 통합 테스트 (WireMock)
+    - `KisWebSocketManager` 연결/재연결 테스트
+    - `RealtimeSubscriptionService` 구독 관리 테스트
+    - `RealtimePriceMessageHandler` 파싱 테스트
+  - 통합 테스트 (MockWebSocketServer)
+    - 실시간 시세 수신 → DB 저장 검증
+    - 재연결 시나리오 (연결 끊김 → 자동 재연결 → 재구독)
+    - 샘플링 로직 검증 (5초 간격 배치 저장)
 
 ---
 

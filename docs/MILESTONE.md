@@ -109,19 +109,33 @@
 
 **Week 1 총합**: 약 11.5시간 (관심종목 편집 8시간 + 문서화 3.5시간)
 
-### Week 2: 실시간 시세 조회 (2026-02-02 월 ~ 02-08 일)
+### Week 2: 실시간 시세 조회 (WebSocket 방식, 2026-01-27 화 ~ 02-08 일)
 
-#### ❌ 실시간 시세 기능 (0%)
-- [ ] KIS API 실시간 엔드포인트 연동
-  - GET `/uapi/domestic-stock/v1/quotations/inquire-price` (국내 주식)
-  - GET `/uapi/overseas-price/v1/quotations/price` (해외 주식)
+#### ❌ 실시간 시세 기능 (WebSocket, 0%)
+- [ ] KIS WebSocket API 스펙 조사 및 승인키 발급
+  - POST `/oauth2/Approval` (승인키 발급)
+  - WebSocket 엔드포인트: `ws://ops.koreainvestment.com:21000`
+  - TR 코드: `H0STCNT0` (실시간 체결가), `H0STASP0` (실시간 호가)
+  - 구독 제한: 최대 20개
+- [ ] WebSocketClient 구현
+  - `KisWebSocketManager`: 연결 관리, 재연결 (지수 백오프)
+  - `KisWebSocketHandler`: 메시지 핸들러
+  - `KisWebSocketHealthIndicator`: Health Check
 - [ ] RealtimePrice Entity/Repository 설계
-- [ ] RealtimePriceService 구현
-- [ ] RealtimePriceScheduler 구현
-  - cron: `*/1 9-15 * * MON-FRI` (장중 1분 간격)
+  - `RealtimeStockPrice` Entity (upsert 방식)
+  - 복합 유니크 제약: (stock_code, market_code)
+- [ ] SubscriptionManager 및 MessageHandler 구현
+  - `RealtimeSubscriptionService`: 구독 관리
+  - `RealtimePriceMessageHandler`: 메시지 파싱 및 비동기 처리
+- [ ] RealtimePriceService 통합 및 샘플링
+  - `RealtimePriceSampler`: 5초 샘플링 (메모리 버퍼 → 배치 저장)
+  - `TradingHoursScheduler`: 장 시작/종료 관리
 - [ ] 테스트 작성
+  - Mock WebSocket Server 구현
+  - 재연결 시나리오 테스트
+- [ ] ADR-0011 작성 완료 (REST vs WebSocket 결정 기록)
 
-**예상 시간**: 10시간
+**예상 시간**: 15시간
 
 ### Week 3-4: AI Advisor/Notifier 통신 + 투자 상태 관리 (2026-02-09 월 ~ 02-22 일)
 
@@ -184,9 +198,9 @@
 
 ### Phase 2 총 예상 시간
 - Week 1: 11시간
-- Week 2: 10시간
+- Week 2: 15시간
 - Week 3-4: 42시간
-- **총합: 63시간**
+- **총합: 68시간**
 
 ---
 
@@ -281,7 +295,7 @@
 |-------|------|--------|------|
 | Phase 1: 데이터 수집 인프라 | 2026-01-12 ~ 01-26 (2주) | 100% | ✅ 완료 |
 | Phase 2 Week 1: 문서화 + 관심종목 편집 | 2026-01-26 ~ 02-01 (1주) | 100% | ✅ 완료 |
-| Phase 2 Week 2: 실시간 시세 조회 | 2026-02-02 ~ 02-08 (1주) | 0% | ❌ 미시작 |
+| Phase 2 Week 2: 실시간 시세 조회 (WebSocket) | 2026-01-27 ~ 02-08 (1.5주) | 0% | 🔜 진행 예정 |
 | Phase 2 Week 3-4: AI/Notifier 통신 | 2026-02-09 ~ 02-22 (2주) | 0% | ❌ 미시작 |
 | Phase 3: 주문 실행 및 안정성 고도화 | 2026-02-23 ~ 03-29 (5주) | 0% | ❌ 미시작 |
 | Phase 4: 비동기 통신 전환 | 2026-04 이후 | 0% | ❌ 미시작 |
