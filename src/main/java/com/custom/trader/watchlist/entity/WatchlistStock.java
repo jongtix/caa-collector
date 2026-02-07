@@ -53,15 +53,15 @@ public class WatchlistStock extends BaseEntity {
      * <p>라이프사이클:
      * <ul>
      *   <li><b>false (초기 상태)</b>: 종목이 처음 추가되었을 때, 히스토리 데이터 수집이 필요함</li>
-     *   <li><b>true (백필 완료)</b>: {@link com.custom.trader.stockprice.service.StockPriceCollectorService#backfillHistoricalPrices()}에서
+     *   <li><b>true (백필 완료)</b>: {@link com.custom.trader.stockprice.service.StockPriceCollectionService#backfillHistoricalPrices()}에서
      *       과거 데이터 수집이 완료되면 {@link #markBackfillCompleted()}를 통해 true로 변경됨</li>
      * </ul>
      * </p>
      *
      * <p>사용처:
      * <ul>
-     *   <li>{@link com.custom.trader.stockprice.service.StockPriceCollectorService#collectDailyPrices()}: backfillCompleted=true인 종목만 일일 수집</li>
-     *   <li>{@link com.custom.trader.stockprice.service.StockPriceCollectorService#backfillHistoricalPrices()}: backfillCompleted=false인 종목만 백필</li>
+     *   <li>{@link com.custom.trader.stockprice.service.StockPriceCollectionService#collectDailyPrices()}: backfillCompleted=true인 종목만 일일 수집</li>
+     *   <li>{@link com.custom.trader.stockprice.service.StockPriceCollectionService#backfillHistoricalPrices()}: backfillCompleted=false인 종목만 백필</li>
      * </ul>
      * </p>
      */
