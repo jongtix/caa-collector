@@ -72,7 +72,7 @@ class KisStockPriceServiceTest {
             var output1 = new DomesticStockDailyPriceResponse.Output1("71500", "+500", "0.70", "삼성전자");
             var response = new DomesticStockDailyPriceResponse("0", "00000000", "정상", output1, priceItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
@@ -102,7 +102,7 @@ class KisStockPriceServiceTest {
 
             var response = new DomesticStockDailyPriceResponse("0", "00000000", "정상", null, null);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
@@ -140,7 +140,7 @@ class KisStockPriceServiceTest {
             var output1 = new DomesticIndexDailyPriceResponse.Output1("2650.50", "+10.50", "2", "0.40", "500000000", "10000000000000", "코스피");
             var response = new DomesticIndexDailyPriceResponse("0", "00000000", "정상", output1, priceItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.DOMESTIC_INDEX_DAILY_PRICE),
@@ -181,7 +181,7 @@ class KisStockPriceServiceTest {
             var output1 = new OverseasStockDailyPriceResponse.Output1("D+AAPL", "4", "100");
             var response = new OverseasStockDailyPriceResponse("0", "00000000", "정상", output1, priceItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.OVERSEAS_STOCK_DAILY_PRICE),
@@ -225,7 +225,7 @@ class KisStockPriceServiceTest {
             );
             var response = new OverseasIndexDailyPriceResponse("0", "00000000", "정상", output1, priceItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.OVERSEAS_INDEX_DAILY_PRICE),
@@ -246,7 +246,101 @@ class KisStockPriceServiceTest {
     }
 
     @Nested
-    @DisplayName("getDefaultAccount 메소드 (private, 다른 메소드 통해 테스트)")
+    @DisplayName("safeExtractOutput 메소드 (private, getDomesticStockDailyPrices 통해 간접 테스트)")
+    class SafeExtractOutput {
+
+        @Test
+        @DisplayName("output2가 null이면 빈 리스트 반환 (국내 주식)")
+        void output2가_null이면_빈_리스트_반환_국내주식() {
+            // given
+            var stockCode = "005930";
+            var startDate = LocalDate.of(2024, 1, 1);
+            var endDate = LocalDate.of(2024, 1, 5);
+
+            var response = new DomesticStockDailyPriceResponse("0", "00000000", "정상", null, null);
+
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(DomesticStockDailyPriceResponse.class)
+            )).willReturn(response);
+
+            // when
+            var result = kisStockPriceService.getDomesticStockDailyPrices(stockCode, startDate, endDate);
+
+            // then
+            assertThat(result).isEmpty();
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("output2가 정상 리스트면 그대로 반환 (국내 주식)")
+        void output2가_정상_리스트면_그대로_반환_국내주식() {
+            // given
+            var stockCode = "005930";
+            var startDate = LocalDate.of(2024, 1, 1);
+            var endDate = LocalDate.of(2024, 1, 5);
+
+            var priceItems = List.of(
+                    new DomesticStockDailyPriceResponse.PriceItem(
+                            "20240105", "71000", "72000", "70000", "71500", "1000000", "71000000000"
+                    )
+            );
+            var output1 = new DomesticStockDailyPriceResponse.Output1("71500", "+500", "0.70", "삼성전자");
+            var response = new DomesticStockDailyPriceResponse("0", "00000000", "정상", output1, priceItems);
+
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(DomesticStockDailyPriceResponse.class)
+            )).willReturn(response);
+
+            // when
+            var result = kisStockPriceService.getDomesticStockDailyPrices(stockCode, startDate, endDate);
+
+            // then
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).stckBsopDate()).isEqualTo("20240105");
+        }
+
+        @Test
+        @DisplayName("output2가 빈 리스트면 빈 리스트 반환 (국내 주식)")
+        void output2가_빈_리스트면_빈_리스트_반환_국내주식() {
+            // given
+            var stockCode = "005930";
+            var startDate = LocalDate.of(2024, 1, 1);
+            var endDate = LocalDate.of(2024, 1, 5);
+
+            var response = new DomesticStockDailyPriceResponse("0", "00000000", "정상", null, Collections.emptyList());
+
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(DomesticStockDailyPriceResponse.class)
+            )).willReturn(response);
+
+            // when
+            var result = kisStockPriceService.getDomesticStockDailyPrices(stockCode, startDate, endDate);
+
+            // then
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("getDefaultAccount 메소드 호출 검증 (KisAuthService 위임)")
     class GetDefaultAccount {
 
         @Test
@@ -257,7 +351,7 @@ class KisStockPriceServiceTest {
             var startDate = LocalDate.of(2024, 1, 1);
             var endDate = LocalDate.of(2024, 1, 5);
 
-            given(kisProperties.accounts()).willReturn(Collections.emptyList());
+            given(kisAuthService.getDefaultAccount()).willThrow(new KisApiException("No accounts configured"));
 
             // when & then
             assertThatThrownBy(() -> kisStockPriceService.getDomesticStockDailyPrices(stockCode, startDate, endDate))

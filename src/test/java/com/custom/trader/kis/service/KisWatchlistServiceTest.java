@@ -61,7 +61,7 @@ class KisWatchlistServiceTest {
             );
             var response = new WatchlistGroupResponse("0", "00000000", "정상", groupItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisProperties.userId()).willReturn("testUser");
             given(kisRestClient.get(
@@ -89,7 +89,7 @@ class KisWatchlistServiceTest {
             // given
             var response = new WatchlistGroupResponse("0", "00000000", "정상", null);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisProperties.userId()).willReturn("testUser");
             given(kisRestClient.get(
@@ -123,7 +123,7 @@ class KisWatchlistServiceTest {
             var response = new WatchlistStockResponse("0", "00000000", "정상", stockItems);
             String groupCode = "001";
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.WATCHLIST_STOCK),
@@ -151,7 +151,7 @@ class KisWatchlistServiceTest {
             var response = new WatchlistStockResponse("0", "00000000", "정상", null);
             String groupCode = "001";
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisRestClient.get(
                     eq(KisApiEndpoint.WATCHLIST_STOCK),
@@ -170,14 +170,14 @@ class KisWatchlistServiceTest {
     }
 
     @Nested
-    @DisplayName("getDefaultAccount 메소드 (private, 다른 메소드 통해 테스트)")
+    @DisplayName("getDefaultAccount 메소드 호출 검증 (KisAuthService 위임)")
     class GetDefaultAccount {
 
         @Test
         @DisplayName("계정이 없으면 예외 발생")
         void 계정이_없으면_예외_발생() {
             // given
-            given(kisProperties.accounts()).willReturn(Collections.emptyList());
+            given(kisAuthService.getDefaultAccount()).willThrow(new KisApiException("No accounts configured"));
 
             // when & then
             assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
@@ -193,7 +193,7 @@ class KisWatchlistServiceTest {
             var groupItems = List.of(new WatchlistGroupResponse.GroupItem("001", "관심그룹1"));
             var response = new WatchlistGroupResponse("0", "00000000", "정상", groupItems);
 
-            given(kisProperties.accounts()).willReturn(List.of(testAccount, secondAccount));
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
             given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
             given(kisProperties.userId()).willReturn("testUser");
             given(kisRestClient.get(
@@ -208,6 +208,7 @@ class KisWatchlistServiceTest {
             kisWatchlistService.getWatchlistGroups();
 
             // then
+            verify(kisAuthService).getDefaultAccount();
             verify(kisAuthService).getAccessToken(testAccount.name());
             verify(kisRestClient).get(
                     eq(KisApiEndpoint.WATCHLIST_GROUP),

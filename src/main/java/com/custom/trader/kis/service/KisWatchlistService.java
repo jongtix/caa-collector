@@ -24,7 +24,7 @@ public class KisWatchlistService {
     private final KisProperties kisProperties;
 
     public List<WatchlistGroupResponse.GroupItem> getWatchlistGroups() {
-        var account = getDefaultAccount();
+        var account = kisAuthService.getDefaultAccount();
         var accessToken = kisAuthService.getAccessToken(account.name());
 
         log.info("Fetching watchlist groups for user: {}", kisProperties.userId());
@@ -47,7 +47,7 @@ public class KisWatchlistService {
     }
 
     public List<WatchlistStockResponse.StockItem> getStocksByGroup(String groupCode) {
-        var account = getDefaultAccount();
+        var account = kisAuthService.getDefaultAccount();
         var accessToken = kisAuthService.getAccessToken(account.name());
 
         log.info("Fetching stocks for group: {}", groupCode);
@@ -72,12 +72,5 @@ public class KisWatchlistService {
 
         log.info("Fetched {} stocks for group {}", response.output2() != null ? response.output2().size() : 0, groupCode);
         return response.output2() != null ? response.output2() : Collections.emptyList();
-    }
-
-    private KisAccountProperties getDefaultAccount() {
-        if (kisProperties.accounts().isEmpty()) {
-            throw new KisApiException("No accounts configured");
-        }
-        return kisProperties.accounts().getFirst();
     }
 }
