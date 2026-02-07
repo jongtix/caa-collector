@@ -74,6 +74,7 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 - **Database**: H2 (개발), MySQL (운영)
 - **Cache & Lock**: Redis (토큰 캐싱, ShedLock 분산 락)
 - **Scheduler**: Spring Scheduling + ShedLock
+- **Container**: Docker (eclipse-temurin:21-jdk-alpine)
 - **External APIs**:
   - 한국투자증권 Open API (OAuth2)
   - AI Advisor Service (REST)
@@ -108,10 +109,20 @@ SPRING_DATA_REDIS_PORT=6379
 SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/caa_collector
 SPRING_DATASOURCE_USERNAME=collector_user
 SPRING_DATASOURCE_PASSWORD=collector_password
+
+# 보안 설정 (Phase 2)
+REDIS_KEY_HMAC_SECRET=your_hmac_secret_key_for_redis_key_hashing
+TOKEN_ENCRYPTION_KEY=your_32byte_base64_encoded_encryption_key
+ACTUATOR_USERNAME=actuator
+ACTUATOR_PASSWORD=your_actuator_password
+
+# 로그 설정
+LOG_FILE_PATH=/app/logs
 ```
 
 ### 빌드 및 실행
 
+#### 로컬 개발 (Gradle)
 ```bash
 # 빌드
 ./gradlew build -q
@@ -131,6 +142,35 @@ SPRING_DATASOURCE_PASSWORD=collector_password
 # 클린 빌드
 ./gradlew clean build -q
 ```
+
+#### Docker 실행 (로컬 테스트)
+```bash
+# 1. Docker 이미지 빌드 (프로젝트 루트에서)
+cd /path/to/CAA/caa-collector
+docker build -t caa-collector:local .
+
+# 2. .env.local 설정 (프로젝트 루트)
+cd /path/to/CAA
+cp .env.example .env.local
+# .env.local 파일 수정 (볼륨 경로, 비밀번호 등)
+
+# 3. Docker Compose 실행
+docker-compose --env-file .env.local up -d
+
+# 4. 로그 확인
+docker-compose logs -f collector
+
+# 5. 정리
+docker-compose --env-file .env.local down
+```
+
+**Dockerfile 특징**:
+- Multi-stage Build (빌드 레이어 분리)
+- 베이스 이미지: `eclipse-temurin:21-jdk-alpine` (경량화)
+- Gradle Wrapper 9.2.1 활용
+- 빌드 검증 로직 내장
+- 프로파일은 docker-compose.yml 환경 변수로 제어 (SPRING_PROFILES_ACTIVE)
+- 이미지 크기: 약 347MB
 
 ---
 
