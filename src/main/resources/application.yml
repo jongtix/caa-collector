@@ -18,6 +18,20 @@ spring:
       dev: log-dev, db-dev
       prod: log-prod, db-prod
 
+management:
+  endpoints:
+    web:
+      base-path: /internal/management
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  server:
+    port: 9090
+
 kis:
   base-url: https://openapi.koreainvestment.com:9443
   user-id: ${KIS_ID}
