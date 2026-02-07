@@ -1,13 +1,21 @@
 # ==================== Stage 1: Build ====================
 # Gradle 빌드를 수행하는 단계 (빌드 도구 및 의존성 포함)
-FROM gradle:8.11.1-jdk21-alpine AS builder
+# Eclipse Temurin 기반으로 Gradle wrapper 사용
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# Gradle 래퍼 및 설정 파일 복사 (의존성 다운로드 레이어 캐싱 최적화)
+# Gradle wrapper 다운로드를 위한 파일 복사
+# gradle-wrapper.properties 포함하여 Gradle 9.2.1 자동 다운로드
 COPY gradle gradle
-COPY gradlew .
+COPY gradlew ./
+
+# Gradle wrapper 다운로드 (Gradle 9.2.1)
+# 의존성 다운로드 전에 Gradle 바이너리를 먼저 다운로드
+RUN ./gradlew --version
+
+# Gradle 설정 파일 복사 (의존성 다운로드 레이어 캐싱 최적화)
 COPY build.gradle settings.gradle ./
 
 # 의존성 다운로드 (빌드 캐시 활용)
@@ -26,8 +34,9 @@ COPY src src
 RUN ./gradlew build -x test --no-daemon \
     -Dorg.gradle.jvmargs="-Xmx512m -XX:MaxMetaspaceSize=256m"
 
-# 빌드 결과물 확인 (디버깅용, 빌드 성공 여부 체크)
-RUN ls -lh /app/build/libs/
+# 빌드 결과물 확인 (빌드 성공 여부 체크)
+# JAR 파일이 없으면 빌드 실패로 처리
+RUN ls /app/build/libs/*.jar || (echo "Build failed: JAR not found" && exit 1)
 
 
 # ==================== Stage 2: Runtime ====================
@@ -120,7 +129,9 @@ EXPOSE 8080 9090
 #   -XX:+ParallelRefProcEnabled: 병렬 참조 처리 (GC 성능 향상)
 # Other:
 #   -Djava.security.egd: 난수 생성 최적화 (컨테이너 환경)
-#   -Dspring.profiles.active: 프로파일 설정 (환경 변수로 재정의 가능)
+# Note: spring.profiles.active는 docker-compose.yml의 SPRING_PROFILES_ACTIVE 환경 변수로 제어
+#       JVM 시스템 프로퍼티(-Dspring.profiles.active)는 환경 변수보다 우선순위가 높아
+#       docker-compose.yml 설정을 무시하게 되므로 제거함
 ENV JAVA_OPTS="-Xms${JAVA_XMS} \
                -Xmx${JAVA_XMX} \
                -XX:MaxMetaspaceSize=100m \
@@ -131,8 +142,7 @@ ENV JAVA_OPTS="-Xms${JAVA_XMS} \
                -XX:MaxGCPauseMillis=200 \
                -XX:+UseStringDeduplication \
                -XX:+ParallelRefProcEnabled \
-               -Djava.security.egd=file:/dev/./urandom \
-               -Dspring.profiles.active=${SPRING_PROFILE}"
+               -Djava.security.egd=file:/dev/./urandom"
 
 # 애플리케이션 실행 (tini로 PID 1 관리)
 # tini: 경량 init 시스템 (8KB)

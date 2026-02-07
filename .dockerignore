@@ -17,15 +17,19 @@ target/
 .project
 .settings/
 
-# Environment
+# Environment & Local Config
 .env
 .env.*
+gradle.properties
 *.log
 
 # Documentation
 README.md
 CLAUDE.md
 docs/
+
+# Claude Code
+.claude/
 
 # Test
 src/test/
@@ -39,3 +43,6 @@ Thumbs.db
 *.bak
 *.swp
 *~
+
+# Include Gradle Wrapper (명시적 포함)
+!gradle/wrapper/gradle-wrapper.jar
