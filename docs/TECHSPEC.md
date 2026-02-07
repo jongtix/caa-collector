@@ -1425,6 +1425,20 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT}
 
+  security:
+    user:
+      name: ${ACTUATOR_USERNAME}
+      password: ${ACTUATOR_PASSWORD}
+
+security:
+  actuator:
+    username: ${ACTUATOR_USERNAME}
+    password: ${ACTUATOR_PASSWORD}
+  redis:
+    hmac-secret: ${REDIS_KEY_HMAC_SECRET}
+  token:
+    encryption-key: ${TOKEN_ENCRYPTION_KEY}
+
 kis:
   base-url: https://openapi.koreainvestment.com:9443
   app-key: ${KIS_APP_KEY}

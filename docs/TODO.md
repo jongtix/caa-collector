@@ -6,11 +6,11 @@
 
 ## Header
 
-- **Last Updated**: 2026-02-07 (금)
-- **Current Phase**: Phase 2 Week 2 (진행률 24%)
-- **Focus**: 배포 자동화 (Docker Hub, Docker, CI/CD)
+- **Last Updated**: 2026-02-08 (일)
+- **Current Phase**: Phase 2 Week 2 (진행률 48%)
+- **Focus**: 배포 자동화 (CI/CD, 보안 스캔)
 - **Deadline**: 2026-02-22 (일)
-- **Remaining**: 38.5시간 (15일)
+- **Remaining**: 21.5시간 (14일)
 
 ---
 
@@ -18,17 +18,24 @@
 
 ### 배포 인프라 구축 (총 11.5시간)
 
-- [ ] **Docker Hub 설정** (0.5시간, CRITICAL)
-  - Docker Hub 계정 생성 및 Access Token 발급
-  - GitHub Secrets 설정 (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN)
+- [x] **Docker Hub 설정** (0.5시간, CRITICAL) ✅ **2026-02-08 완료**
+  - ✅ Docker Hub 계정 생성 및 Access Token 발급
+  - ✅ GitHub Secrets 설정 (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN)
   - 참조: [MSA/ADR-0011: Docker Hub 공개 배포 전략](../../docs/adr/ADR-0011-docker-hub-public-deployment.md)
 
-- [ ] **컨테이너화** (8시간)
-  - Dockerfile Multi-stage Build (JAR 레이어 분리, Non-root 사용자)
-  - .dockerignore 설정 (빌드 컨텍스트 최적화)
-  - 로컬 테스트 및 디버깅 (docker build, docker run)
-  - Docker Compose 최종 검증 (MySQL 8.0, Redis 7.0, Collector)
-  - 환경변수 최종 점검 (.env 구조화)
+- [x] **컨테이너화** (8시간) ✅ **2026-02-08 완료**
+  - ✅ Dockerfile 최적화 (프로파일 제어 방식 변경, ARG → CMD 전달)
+  - ✅ .dockerignore 설정 (빌드 컨텍스트 최적화)
+  - ✅ 로컬 테스트 성공 (docker build, docker run, dev 프로파일)
+  - ✅ Docker Compose 최종 검증 (MySQL 8.0, Redis 7.0, Collector)
+  - ✅ 환경변수 최종 점검 (.env.local 방식 채택)
+  - ✅ 보안 환경변수 추가 (LOG_FILE_PATH, REDIS_KEY_HMAC_SECRET, TOKEN_ENCRYPTION_KEY)
+  - ✅ docker-compose.override.yml .gitignore 추가
+  - ✅ 문서화 완료:
+    - DEPLOYMENT.md: 로컬 테스트 가이드
+    - .env.example: Redis & Token Security 섹션
+    - caa-collector/README.md: Docker 가이드
+    - caa-collector/docs/TECHSPEC.md: 보안 설정
 
 - [ ] **CI/CD 보안 스캔** (2시간)
   - GitHub Dependabot 활성화 (주간 PR 자동 생성)
@@ -105,9 +112,10 @@
 - 상세: [MILESTONE.md - Phase 2 Week 1](MILESTONE.md#week-1-문서화--관심종목-편집-반영-2026-01-26-월--02-01-일)
 
 ### 진행 상황
-- Phase 2 진행률: **24%** (13.3h / 57.3h)
-- Week 1 완료: 문서화 (3.5h) + 관심종목 편집 (8h) + 보안 (1.8h)
-- Week 2-3 남은 작업: 38.5시간 (Docker Hub 전략으로 5.5시간 절약)
+- Phase 2 진행률: **48%** (27.3h / 57.3h)
+- Week 1 완료: 문서화 (3.5h) + 관심종목 편집 (8h) + 보안 (1.8h) = 13.3h
+- Week 2 진행 중: Docker Hub (0.5h) + Docker 컨테이너화 (8h) + 문서화 (5.5h) = 14h
+- Week 2-3 남은 작업: 21.5시간
 - MVP 목표: 2026-04-05 (Phase 5 완료)
 
 ---
