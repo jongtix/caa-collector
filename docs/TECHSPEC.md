@@ -75,14 +75,20 @@ com.custom.trader
 │   ├── ShedLockConfig.java           # 분산 락 설정
 │   └── RateLimiterConfig.java        # Rate Limiter 설정
 ├── common/
+│   ├── constant/
+│   │   └── DateFormatConstants.java  # 날짜 포맷 상수 (KST_ZONE_ID 등)
 │   ├── entity/
 │   │   └── BaseEntity.java           # 생성/수정 시간 자동 관리
 │   ├── converter/
 │   │   ├── MarketCodeConverter.java  # JPA Converter
 │   │   └── AssetTypeConverter.java   # JPA Converter
-│   └── enums/
-│       ├── MarketCode.java           # 시장 코드 Enum
-│       └── AssetType.java            # 자산 유형 Enum
+│   ├── enums/
+│   │   ├── MarketCode.java           # 시장 코드 Enum
+│   │   └── AssetType.java            # 자산 유형 Enum
+│   └── util/
+│       ├── TokenEncryptor.java       # Redis 토큰 AES-256 암호화
+│       ├── RedisKeyHasher.java       # 계정번호 SHA-256 해싱
+│       └── LogMaskingUtil.java       # 민감 정보 로그 마스킹
 ├── kis/
 │   ├── config/
 │   │   ├── KisProperties.java        # KIS API 설정 (record)
@@ -124,6 +130,8 @@ com.custom.trader
     ├── entity/
     │   ├── WatchlistGroup.java       # 관심종목 그룹
     │   └── WatchlistStock.java       # 관심종목
+    ├── mapper/
+    │   └── WatchlistMapper.java      # API DTO → Entity 변환
     ├── repository/
     │   ├── WatchlistGroupRepository.java
     │   └── WatchlistStockRepository.java
@@ -169,9 +177,17 @@ CREATE TABLE watchlist_stock (
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     CONSTRAINT uk_watchlist_stock_group_code UNIQUE (group_id, stock_code),
-    FOREIGN KEY (group_id) REFERENCES watchlist_group(id) ON DELETE CASCADE
+    FOREIGN KEY (group_id) REFERENCES watchlist_group(id) ON DELETE CASCADE,
+    INDEX idx_watchlist_stock_backfill_completed (backfill_completed, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
+
+**Index 전략**:
+- `idx_watchlist_stock_backfill_completed (backfill_completed, id)`: 백필 대상 종목 조회 최적화
+  - `StockBackfillService`에서 `backfill_completed = FALSE` 조건으로 조회 시 성능 향상
+  - Covering Index 효과 (id도 포함하여 테이블 접근 최소화)
+
+---
 
 #### DomesticStockDailyPrice (국내 주식)
 
@@ -1205,6 +1221,182 @@ private void syncStocks(WatchlistGroup group, GroupItem apiGroup) {
 
 ---
 
+## Security Architecture
+
+### 보안 구성 요소 (Phase 2 완료)
+
+#### 1. Token Encryption (TokenEncryptor)
+
+**목적**: Redis에 저장되는 KIS API 액세스 토큰을 암호화하여 보호
+
+**알고리즘**: AES-256-GCM (Galois/Counter Mode)
+
+**구현**:
+```java
+@Component
+public class TokenEncryptor {
+    private final SecretKey secretKey;
+
+    public String encrypt(String plainToken) {
+        // AES-256-GCM 암호화
+        // IV(Initialization Vector) 자동 생성
+        // Base64 인코딩하여 반환
+    }
+
+    public String decrypt(String encryptedToken) {
+        // Base64 디코딩 → AES-256-GCM 복호화
+    }
+}
+```
+
+**환경변수**:
+- `ENCRYPTION_SECRET_KEY`: 32바이트 Base64 인코딩된 비밀키
+
+**보안 고려사항**:
+- 비밀키는 환경변수로 주입 (하드코딩 금지)
+- IV는 암호화 시마다 랜덤 생성 (재사용 금지)
+- GCM 모드로 무결성 검증 자동 수행
+
+**참조**: [ADR-0012](adr/0012-spring-security-integration.md)
+
+---
+
+#### 2. Redis Key Hashing (RedisKeyHasher)
+
+**목적**: Redis 키에 민감 정보(계정번호) 직접 노출 방지
+
+**알고리즘**: SHA-256
+
+**구현**:
+```java
+@Component
+public class RedisKeyHasher {
+    private final String salt;
+
+    public String hash(String accountNumber) {
+        // SHA-256(accountNumber + salt)
+        // 16진수 문자열로 반환
+    }
+}
+```
+
+**환경변수**:
+- `REDIS_KEY_SALT`: 해싱용 솔트 값
+
+**보안 효과**:
+- Redis 키 유출 시에도 원본 계정번호 역추적 불가
+- 무지개 테이블 공격 방어 (솔트 사용)
+
+**예시**:
+```
+기존: kis:token:1234567890  (계정번호 노출)
+개선: kis:token:a3f5c8d9... (SHA-256 해시)
+```
+
+---
+
+#### 3. Log Masking (LogMaskingUtil)
+
+**목적**: 로그에 민감 정보가 평문으로 기록되는 것을 방지
+
+**마스킹 대상**:
+- 사용자 ID (이메일)
+- 계정번호
+- 액세스 토큰
+- API 키
+
+**구현**:
+```java
+public class LogMaskingUtil {
+    public static String maskUserId(String userId) {
+        // user@example.com → u***@example.com
+    }
+
+    public static String maskAccountNumber(String accountNumber) {
+        // 1234567890 → 123***7890
+    }
+
+    public static String maskToken(String token) {
+        // eyJhbGciOi... → eyJ***
+    }
+}
+```
+
+**적용 예시**:
+```java
+// 변경 전
+log.info("Fetching watchlist for user: {}", userId);
+
+// 변경 후
+log.info("Fetching watchlist for user: {}", LogMaskingUtil.maskUserId(userId));
+```
+
+**보안 효과**:
+- 로그 파일 유출 시 민감 정보 보호
+- 개발/운영 환경 로그 안전성 향상
+
+---
+
+#### 4. Spring Security 통합
+
+**인증 방식**: HTTP Basic Authentication
+
+**보호 대상**:
+- `/actuator/**` 엔드포인트 (health 제외)
+
+**공개 엔드포인트**:
+- `/actuator/health`: 헬스 체크 (Docker, Watchtower용)
+
+**설정**:
+```yaml
+spring:
+  security:
+    user:
+      name: ${ACTUATOR_USERNAME}
+      password: ${ACTUATOR_PASSWORD}
+      roles: ACTUATOR
+```
+
+**CSRF 보호**:
+- Stateless REST API로 CSRF 비활성화
+
+**보안 헤더**:
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Strict-Transport-Security` (HTTPS 적용 시)
+- `Content-Security-Policy`
+
+**참조**:
+- [ADR-0012: Spring Security Integration](adr/0012-spring-security-integration.md)
+- [ADR-0013: TestRestTemplate for Security Test](adr/0013-test-resttemplate-for-security-test.md)
+
+---
+
+#### 5. Redis 토큰 저장 방식 변경
+
+**변경 전** (Phase 1):
+```
+Redis Key: kis:token:1234567890
+Redis Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**변경 후** (Phase 2):
+```
+Redis Key: kis:token:a3f5c8d9e2b7f1c4d6a8e9f3b5c7d2a1... (SHA-256 해시)
+Redis Value: AES256_GCM_ENCRYPTED_BASE64_STRING... (AES-256-GCM 암호화)
+```
+
+**보안 강화 효과**:
+1. **키 보호**: 계정번호 해싱으로 원본 정보 보호
+2. **값 보호**: 토큰 암호화로 Redis 메모리 덤프 공격 방어
+3. **무결성**: GCM 모드로 변조 탐지
+
+**성능 영향**:
+- 암호화/복호화 오버헤드: ~1ms (negligible)
+- Redis 조회 패턴 변경 없음 (여전히 O(1))
+
+---
+
 ## Configuration
 
 ### application.yml 예시
@@ -1306,27 +1498,197 @@ public class RateLimiterConfig {
 
 ### 통합 테스트 (WireMock, Testcontainers) ✅ 구현 완료
 
-- **KIS API 모킹**: WireMock으로 HTTP 응답 시뮬레이션
-- **Database**: Testcontainers MySQL
-- **Redis**: Testcontainers Redis
-- **Phase 1 달성**: 5개 통합 테스트 작성 및 통과
-- **예시**:
-  ```java
-  @Test
-  void fetchWatchlist_shouldReturnWatchlistResponse() {
-      // given
-      stubFor(get(urlPathEqualTo("/uapi/domestic-stock/v1/trading/inquire-psbl-order"))
-          .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(mockResponseJson)));
+#### Testcontainers 기반 통합 테스트 (Phase 2 추가)
 
-      // when
-      var response = kisWatchlistService.fetchWatchlist(userId);
+**구성**:
+- **MySQL**: `testcontainers:mysql:8.0` - 실제 DB 환경 시뮬레이션
+- **Redis**: `testcontainers-redis:2.2.2` - Redis 캐시 동작 검증
+- **MockWebServer**: OkHttp 기반 KIS API Mock 서버
 
-      // then
-      assertThat(response.groups()).hasSize(2);
-  }
-  ```
+**의존성**:
+```gradle
+testImplementation 'org.testcontainers:testcontainers:1.19.8'
+testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
+testImplementation 'com.redis:testcontainers-redis:2.2.2'
+testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+testImplementation 'org.awaitility:awaitility:4.2.0'
+testImplementation 'io.github.hakky54:logcaptor:2.9.0'
+```
+
+**장점**:
+- **실제 환경 근접**: H2 인메모리 DB 대신 실제 MySQL 사용
+- **격리**: 각 테스트가 독립적인 컨테이너에서 실행
+- **CI/CD 친화적**: GitHub Actions에서 동일한 환경으로 테스트 가능
+
+**예시 - KIS API Mock**:
+```java
+@Test
+void fetchWatchlist_shouldReturnWatchlistResponse() {
+    // given - MockWebServer로 KIS API 응답 모킹
+    mockWebServer.enqueue(new MockResponse()
+        .setResponseCode(200)
+        .setBody(mockResponseJson)
+        .addHeader("Content-Type", "application/json"));
+
+    // when
+    var response = kisWatchlistService.fetchWatchlist(userId);
+
+    // then
+    assertThat(response.groups()).hasSize(2);
+}
+```
+
+**예시 - Testcontainers MySQL**:
+```java
+@SpringBootTest
+@Testcontainers
+class WatchlistServiceIntegrationTest {
+    @Container
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+        .withDatabaseName("testdb")
+        .withUsername("test")
+        .withPassword("test");
+
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", mysql::getJdbcUrl);
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
+    }
+
+    @Test
+    void syncWatchlist_shouldPersistToRealDatabase() {
+        // 실제 MySQL 컨테이너에 저장 및 조회 검증
+    }
+}
+```
+
+**Phase 1 달성**: 5개 통합 테스트 + Phase 2에서 Testcontainers 기반 추가 테스트 작성
+
+---
+
+### 보안 테스트 (Phase 2 추가)
+
+#### Spring Security 통합 테스트
+
+**TestRestTemplate 사용 이유**:
+- MockMvc는 서블릿 컨테이너 없이 테스트 (Spring Security 필터 체인 일부만 적용)
+- TestRestTemplate은 실제 서버를 띄우고 HTTP 요청 (완전한 보안 설정 검증)
+
+**참조**: [ADR-0013: TestRestTemplate for Security Test](adr/0013-test-resttemplate-for-security-test.md)
+
+**예시**:
+```java
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class SecurityConfigTest {
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @Test
+    void actuatorHealth_shouldBePublic() {
+        // /actuator/health는 인증 없이 접근 가능
+        ResponseEntity<String> response = restTemplate.getForEntity(
+            "/actuator/health",
+            String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void actuatorMetrics_shouldRequireAuth() {
+        // /actuator/metrics는 인증 필요
+        ResponseEntity<String> response = restTemplate.getForEntity(
+            "/actuator/metrics",
+            String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void actuatorMetrics_withBasicAuth_shouldSucceed() {
+        // HTTP Basic 인증으로 접근
+        ResponseEntity<String> response = restTemplate
+            .withBasicAuth("actuator", "password")
+            .getForEntity("/actuator/metrics", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+}
+```
+
+**검증 항목**:
+- ✅ Public 엔드포인트 (health) 인증 없이 접근 가능
+- ✅ Protected 엔드포인트 (metrics, env) 인증 필요
+- ✅ HTTP Basic 인증 성공 시 접근 허용
+- ✅ 잘못된 자격 증명 시 401 Unauthorized
+- ✅ 보안 헤더 검증 (X-Frame-Options, CSP, HSTS)
+
+---
+
+#### 암호화/해싱 단위 테스트
+
+**TokenEncryptor 테스트**:
+```java
+@Test
+void encrypt_decrypt_shouldReturnOriginalValue() {
+    String original = "test-access-token";
+
+    String encrypted = tokenEncryptor.encrypt(original);
+    String decrypted = tokenEncryptor.decrypt(encrypted);
+
+    assertThat(decrypted).isEqualTo(original);
+    assertThat(encrypted).isNotEqualTo(original); // 암호화 확인
+}
+
+@Test
+void encrypt_shouldGenerateUniqueIV() {
+    String plainText = "same-token";
+
+    String encrypted1 = tokenEncryptor.encrypt(plainText);
+    String encrypted2 = tokenEncryptor.encrypt(plainText);
+
+    assertThat(encrypted1).isNotEqualTo(encrypted2); // IV 다름
+}
+```
+
+**RedisKeyHasher 테스트**:
+```java
+@Test
+void hash_shouldReturnConsistentHash() {
+    String accountNumber = "1234567890";
+
+    String hash1 = redisKeyHasher.hash(accountNumber);
+    String hash2 = redisKeyHasher.hash(accountNumber);
+
+    assertThat(hash1).isEqualTo(hash2);
+}
+
+@Test
+void hash_shouldBeDifferentWithDifferentSalt() {
+    // 솔트가 다르면 해시도 달라야 함
+}
+```
+
+**LogMaskingUtil 테스트**:
+```java
+@Test
+void maskUserId_shouldHideMiddlePart() {
+    String userId = "user@example.com";
+    String masked = LogMaskingUtil.maskUserId(userId);
+
+    assertThat(masked).isEqualTo("u***@example.com");
+}
+
+@Test
+void maskAccountNumber_shouldShowOnlyFirstAndLast() {
+    String accountNumber = "1234567890";
+    String masked = LogMaskingUtil.maskAccountNumber(accountNumber);
+
+    assertThat(masked).isEqualTo("123***7890");
+}
+```
 
 ---
 

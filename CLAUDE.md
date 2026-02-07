@@ -27,11 +27,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 com.custom.trader
-├── config/              # 전역 설정 (RestClient, ShedLock)
-├── common/entity/       # BaseEntity (생성/수정 시간 자동 관리)
+├── config/              # 전역 설정 (RestClient, ShedLock, Security)
+├── common/              # 공통 유틸 및 엔티티
+│   ├── constant/        # DateFormatConstants (KST_ZONE_ID 등)
+│   ├── entity/          # BaseEntity (생성/수정 시간 자동 관리)
+│   ├── converter/       # JPA Converter (MarketCode, AssetType)
+│   ├── enums/           # MarketCode, AssetType Enum
+│   └── util/            # TokenEncryptor, RedisKeyHasher, LogMaskingUtil (Phase 2 보안 강화)
 ├── kis/                 # 한국투자증권 API 연동
 │   ├── config/          # KisProperties, KisAccountProperties (record)
-│   ├── dto/             # API 요청/응답 record
+│   ├── dto/
+│   │   ├── auth/        # KisTokenRequest, KisTokenResponse (Phase 2 이동)
+│   │   ├── watchlist/   # 관심종목 DTO
+│   │   └── stockprice/  # 주식 시세 DTO
 │   ├── exception/       # KisApiException
 │   └── service/         # KisAuthService, KisWatchlistService, KisStockPriceService
 ├── stockprice/          # 주식 가격 수집 도메인
@@ -50,6 +58,7 @@ com.custom.trader
 │   └── scheduler/       # StockPriceScheduler (03:00 백필, 18:30 일간 수집)
 └── watchlist/           # 관심종목 도메인
     ├── entity/          # WatchlistGroup, WatchlistStock (JPA)
+    ├── mapper/          # WatchlistMapper (API DTO → Entity 변환, Phase 2 추가)
     ├── repository/      # Spring Data JPA
     ├── service/         # WatchlistService (3-way 동기화 로직)
     └── scheduler/       # ShedLock 기반 스케줄러 (08:00, 18:00 동기화)

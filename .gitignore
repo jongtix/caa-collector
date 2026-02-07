@@ -44,3 +44,9 @@ out/
 
 ### Claude Code ###
 .claude/
+
+### Code Review Reports ###
+docs/review/
+
+### Security Audit Reports ###
+docs/security/

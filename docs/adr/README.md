@@ -16,6 +16,15 @@
 | [0008](0008-rate-limiter-centralization.md) | Rate Limiter 중앙화 | Accepted | 2026-01-25 |
 | [0009](0009-stockprice-strategy-pattern.md) | StockPrice 도메인에 Strategy Pattern 도입 | Accepted | 2026-01-26 |
 | [0010](0010-template-method-pattern-evaluation.md) | Template Method Pattern 도입 검토 및 보류 결정 | Deferred | 2026-01-26 |
+| [0011](0011-websocket-realtime-price-strategy.md) | 실시간 시세 조회 방식 (REST API vs WebSocket) | Accepted | 2026-01-27 |
+| [0012](0012-spring-security-integration.md) | Spring Security 통합 및 인증 체계 도입 | Accepted | 2026-02-01 |
+| [0013](0013-test-resttemplate-for-security-test.md) | SecurityConfig 테스트에 TestRestTemplate 사용 | Accepted | 2026-02-01 |
+| [0014](0014-security-scanning-strategy.md) | 보안 취약점 스캔 전략 변경 (OWASP → Dependabot + Trivy) | Accepted | 2026-02-02 |
+| [0015](0015-https-enforcement-strategy.md) | HTTPS 강제 전략 - Phase 2 연기 결정 | Accepted | 2026-02-02 |
+| [0016](0016-global-market-schedule-architecture.md) | 글로벌 주식 시장 스케줄 아키텍처 | Accepted | 2026-02-04 |
+| [0017](0017-database-migration-strategy.md) | Database Migration Strategy (Flyway 도입 지연) | Accepted | 2026-02-05 |
+| [0018](0018-dockerfile-shell-injection-mitigation.md) | Dockerfile CMD 쉘 인젝션 완화 전략 | Accepted | 2026-02-06 |
+| [0019](0019-watchlist-api-retry-strategy.md) | Watchlist API N+1 호출 패턴 개선 (재시도 전략 채택) | Accepted | 2026-02-06 |
 
 ## ADR 템플릿
 
