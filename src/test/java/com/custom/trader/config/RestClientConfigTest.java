@@ -1,12 +1,14 @@
 package com.custom.trader.config;
 
 import com.custom.trader.kis.config.KisProperties;
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
@@ -27,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(MySQLTestcontainersConfig.class)
 class RestClientConfigTest {
 
     @Autowired

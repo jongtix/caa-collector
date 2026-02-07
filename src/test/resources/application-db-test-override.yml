@@ -1,21 +1,9 @@
-# Prod 프로필 테스트 환경 설정
-# SecurityConfigProdProfileTest에서 사용
-management:
-  endpoints:
-    web:
-      base-path: /internal/management
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: when-authorized
-      probes:
-        enabled: true
-  health:
-    redis:
-      enabled: false
-
+# 테스트용 DB 오버라이드 설정
+# local, dev, prod 프로필 테스트 시 Testcontainers MySQL 사용
 spring:
+  config:
+    activate:
+      on-profile: db-test-override
   # Testcontainers가 DataSource 설정을 자동으로 주입하므로 별도 설정 불필요
   jpa:
     hibernate:
@@ -26,13 +14,28 @@ spring:
     redis:
       host: localhost
       port: 6379
+  autoconfigure:
+    exclude: []
+  health:
+    redis:
+      enabled: false
 
 # Test Security 설정
 security:
   actuator:
     username: testuser
-    password: testpass-16-chars  # prod 프로필 검증 통과를 위한 16자 이상 password
+    password: testpass
   redis:
     hmac-secret: test-hmac-secret-for-junit-tests-minimum-32-characters-long
   token:
     encryption-key: dGVzdEFlczI1NktleUZvckp1bml0VGVzdHMhMTIzNDU=
+
+# Test KIS API 설정
+kis:
+  base-url: https://test.example.com
+  user-id: test-user
+  accounts:
+    - name: TestAccount
+      account-number: "00000000-00"
+      app-key: test-app-key
+      app-secret: test-app-secret

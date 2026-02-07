@@ -1,13 +1,16 @@
 package com.custom.trader.common.entity;
 
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import com.custom.trader.watchlist.entity.WatchlistGroup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -19,7 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @PrePersist, @PreUpdate 어노테이션이 정상적으로 동작하는지 검증한다.
  */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
+@Import(MySQLTestcontainersConfig.class)
 @DisplayName("BaseEntity JPA 콜백 테스트")
 class BaseEntityTest {
 

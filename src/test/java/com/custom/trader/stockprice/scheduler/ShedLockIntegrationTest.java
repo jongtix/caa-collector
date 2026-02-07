@@ -1,6 +1,7 @@
 package com.custom.trader.stockprice.scheduler;
 
 import com.custom.trader.stockprice.service.StockPriceCollectionService;
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.SimpleLock;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")
+@Import(MySQLTestcontainersConfig.class)
 @DisplayName("ShedLock 분산 잠금 통합 테스트")
 class ShedLockIntegrationTest {
 

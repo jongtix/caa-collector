@@ -1,5 +1,8 @@
 # Development 환경 DB 설정
 spring:
+  config:
+    activate:
+      on-profile: db-dev
   datasource:
     url: ${DB_URL}
     driver-class-name: ${DB_DRIVER}

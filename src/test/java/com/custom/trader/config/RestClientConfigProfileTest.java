@@ -1,10 +1,12 @@
 package com.custom.trader.config;
 
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -23,7 +25,8 @@ class RestClientConfigProfileTest {
      * local 프로필 테스트
      */
     @SpringBootTest
-    @ActiveProfiles("local")
+    @ActiveProfiles({"log-local", "db-test-override"})
+    @Import(MySQLTestcontainersConfig.class)
     @DisplayName("local 프로필에서 LoggingInterceptor 등록됨")
     static class LocalProfileTest {
 
@@ -51,7 +54,8 @@ class RestClientConfigProfileTest {
      * dev 프로필 테스트
      */
     @SpringBootTest
-    @ActiveProfiles("dev")
+    @ActiveProfiles({"log-dev", "db-test-override"})
+    @Import(MySQLTestcontainersConfig.class)
     @DisplayName("dev 프로필에서 LoggingInterceptor 등록됨")
     static class DevProfileTest {
 
@@ -79,7 +83,8 @@ class RestClientConfigProfileTest {
      * prod 프로필 테스트
      */
     @SpringBootTest
-    @ActiveProfiles({"prod", "prod-test"})
+    @ActiveProfiles({"log-prod", "prod-test"})
+    @Import(MySQLTestcontainersConfig.class)
     @DisplayName("prod 프로필에서 LoggingInterceptor 등록 안 됨")
     static class ProdProfileTest {
 

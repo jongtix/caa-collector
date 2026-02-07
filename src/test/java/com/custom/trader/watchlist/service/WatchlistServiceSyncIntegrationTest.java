@@ -6,6 +6,7 @@ import com.custom.trader.kis.config.KisProperties;
 import com.custom.trader.kis.dto.watchlist.WatchlistGroupResponse;
 import com.custom.trader.kis.dto.watchlist.WatchlistStockResponse;
 import com.custom.trader.kis.service.KisWatchlistService;
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import com.custom.trader.watchlist.entity.WatchlistGroup;
 import com.custom.trader.watchlist.entity.WatchlistStock;
 import com.custom.trader.watchlist.repository.WatchlistGroupRepository;
@@ -18,6 +19,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +56,7 @@ import static org.mockito.BDDMockito.given;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(MySQLTestcontainersConfig.class)
 @Transactional
 class WatchlistServiceSyncIntegrationTest {
 

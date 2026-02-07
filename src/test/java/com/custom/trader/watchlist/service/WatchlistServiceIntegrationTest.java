@@ -2,6 +2,7 @@ package com.custom.trader.watchlist.service;
 
 import com.custom.trader.common.enums.AssetType;
 import com.custom.trader.common.enums.MarketCode;
+import com.custom.trader.testcontainers.MySQLTestcontainersConfig;
 import com.custom.trader.watchlist.entity.WatchlistGroup;
 import com.custom.trader.watchlist.entity.WatchlistStock;
 import com.custom.trader.watchlist.repository.WatchlistGroupRepository;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(MySQLTestcontainersConfig.class)
 @Transactional
 class WatchlistServiceIntegrationTest {
 

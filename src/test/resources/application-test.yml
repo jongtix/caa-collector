@@ -15,19 +15,12 @@ management:
       enabled: false
 
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+  # Testcontainers가 DataSource 설정을 자동으로 주입하므로 별도 설정 불필요
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
-    database-platform: org.hibernate.dialect.H2Dialect
-  h2:
-    console:
-      enabled: false
+    database-platform: org.hibernate.dialect.MySQL8Dialect
   data:
     redis:
       host: localhost

@@ -1,19 +1,18 @@
-# Local 환경 DB 설정 (H2 인메모리)
+# Local 환경 DB 설정 (MySQL)
 spring:
+  config:
+    activate:
+      on-profile: db-local
   datasource:
-    url: jdbc:h2:mem:traderdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: ${DB_URL}
+    driver-class-name: ${DB_DRIVER}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQL8Dialect
     properties:
       hibernate:
         format_sql: true
