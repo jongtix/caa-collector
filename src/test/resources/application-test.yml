@@ -1,0 +1,64 @@
+# Test 환경 설정
+management:
+  endpoints:
+    web:
+      base-path: /internal/management
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  autoconfigure:
+    # Actuator 자동 구성 명시적 활성화
+    exclude: []
+
+# Test Security 설정
+security:
+  actuator:
+    username: testuser
+    password: testpass
+  redis:
+    hmac-secret: test-hmac-secret-for-junit-tests-minimum-32-characters-long
+  token:
+    encryption-key: dGVzdEFlczI1NktleUZvckp1bml0VGVzdHMhMTIzNDU=
+
+# Test KIS API 설정
+kis:
+  base-url: https://test.example.com
+  user-id: test-user
+  accounts:
+    - name: TestAccount
+      account-number: "00000000-00"
+      app-key: test-app-key
+      app-secret: test-app-secret
+
+# Debug logging for Actuator
+logging:
+  level:
+    org.springframework.boot.actuate: DEBUG
+    org.springframework.boot.actuate.autoconfigure: DEBUG
+    org.springframework.boot.actuate.endpoint.web: DEBUG

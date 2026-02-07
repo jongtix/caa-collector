@@ -4,6 +4,7 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         jdbc:

@@ -12,6 +12,7 @@ spring:
       # 프로덕션 환경에서는 validate 사용 및 수동 마이그레이션 권장
       # 마이그레이션 스크립트: docs/migrations/V001__add_asset_type_columns.sql
     show-sql: false
+    database-platform: org.hibernate.dialect.MySQL8Dialect
     properties:
       hibernate:
         format_sql: false

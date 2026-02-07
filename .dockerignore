@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+build/
+.gradle/
+bin/
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Environment
+.env
+.env.*
+*.log
+
+# Documentation
+README.md
+CLAUDE.md
+docs/
+
+# Test
+src/test/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

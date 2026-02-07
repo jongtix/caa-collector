@@ -67,6 +67,9 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+    // .env 환경변수가 test 실행 시 주입되지 않도록 명시적으로 제외
+    // 테스트는 src/test/resources/application-*.yml 설정만 사용
+    environment.clear()
 }
 
 jacocoTestReport {

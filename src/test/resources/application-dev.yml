@@ -1,0 +1,53 @@
+# Test용 Development 프로필 설정
+management:
+  endpoints:
+    web:
+      base-path: /internal/management
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# KIS API 테스트 설정
+kis:
+  base-url: https://openapi.koreainvestment.com:9443
+  user-id: test-user
+  accounts:
+    - account-number: "12345678-01"
+      app-key: test-app-key
+      app-secret: test-app-secret
+
+# Test Security 설정
+security:
+  actuator:
+    username: devuser
+    password: devpass
+  redis:
+    hmac-secret: test-hmac-secret-for-junit-tests-minimum-32-characters-long
+  token:
+    encryption-key: dGVzdEFlczI1NktleUZvckp1bml0VGVzdHMhMTIzNDU=
