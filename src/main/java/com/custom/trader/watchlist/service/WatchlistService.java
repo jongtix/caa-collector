@@ -20,6 +20,36 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * 관심종목 동기화 서비스.
+ *
+ * <p><b>3-way 동기화 (Three-Way Synchronization) 구현:</b></p>
+ * <ul>
+ *   <li><b>API</b>: 한국투자증권 오픈 API에서 관심종목 데이터 조회</li>
+ *   <li><b>DB</b>: 로컬 MySQL에 저장된 기존 관심종목 데이터</li>
+ *   <li><b>병합</b>: API와 DB의 데이터를 비교하여 추가/수정/삭제 수행</li>
+ * </ul>
+ *
+ * <p><b>동기화 흐름:</b></p>
+ * <ol>
+ *   <li>API에서 모든 그룹 조회 (getWatchlistGroups)</li>
+ *   <li>API에서 각 그룹의 종목 조회 (getStocksByGroup)</li>
+ *   <li>DB의 기존 데이터와 비교 (diffDetection)</li>
+ *   <li>변경사항 적용 (Upsert: Create/Update, Delete)</li>
+ *   <li>백필 플래그 보존 (backfillCompleted 상태 유지)</li>
+ * </ol>
+ *
+ * <p><b>트랜잭션 처리:</b></p>
+ * <ul>
+ *   <li>전체 동기화 작업이 하나의 트랜잭션으로 처리 (원자성 보장)</li>
+ *   <li>부분 실패 시 전체 롤백 (데이터 일관성)</li>
+ *   <li>Cascade 삭제: 그룹 삭제 시 포함된 모든 종목도 삭제</li>
+ * </ul>
+ *
+ * @see WatchlistGroup 관심종목 그룹 엔티티
+ * @see WatchlistStock 관심종목 엔티티
+ * @see WatchlistScheduler 정기 동기화 스케줄러
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
