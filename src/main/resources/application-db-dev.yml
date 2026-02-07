@@ -3,11 +3,6 @@ spring:
   config:
     activate:
       on-profile: db-dev
-  datasource:
-    url: ${DB_URL}
-    driver-class-name: ${DB_DRIVER}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -19,8 +14,3 @@ spring:
     properties:
       hibernate:
         format_sql: false
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
