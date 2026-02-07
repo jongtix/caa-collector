@@ -148,13 +148,19 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 헬스체크 엔드포인트 공개 (Kubernetes liveness/readiness probe)
+                        // - prod: /internal/management/health (9090 포트, management 서버 분리)
+                        // - dev/local: /actuator/health (8080 포트, management 서버 미분리)
+                        // 보안: prod 환경에서는 management.server.port 설정으로 8080 포트에 /actuator 경로가 존재하지 않음
                         .requestMatchers(
                                 "/internal/management/health",
                                 "/internal/management/health/liveness",
-                                "/internal/management/health/readiness"
+                                "/internal/management/health/readiness",
+                                "/actuator/health",
+                                "/actuator/health/liveness",
+                                "/actuator/health/readiness"
                         ).permitAll()
                         // Actuator 엔드포인트 인증 필요
-                        .requestMatchers("/internal/management/**").hasRole(ROLE_ACTUATOR)
+                        .requestMatchers("/internal/management/**", "/actuator/**").hasRole(ROLE_ACTUATOR)
                         // 그 외 모든 요청 인증 필요 (Secure by Default)
                         // - 미등록 경로에 대한 기본 보호 (인증 없이 접근 불가)
                         // - Phase 3 REST API 추가 시 반드시 명시적 접근 규칙을 위에 추가할 것

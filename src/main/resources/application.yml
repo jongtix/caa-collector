@@ -21,7 +21,6 @@ spring:
 management:
   endpoints:
     web:
-      base-path: /internal/management
       exposure:
         include: health,info
   endpoint:
@@ -29,8 +28,15 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
-  server:
-    port: 9090
+
+security:
+  actuator:
+    username: ${ACTUATOR_USERNAME}
+    password: ${ACTUATOR_PASSWORD}
+  redis:
+    hmac-secret: ${REDIS_KEY_HMAC_SECRET}
+  token:
+    encryption-key: ${TOKEN_ENCRYPTION_KEY}
 
 kis:
   base-url: https://openapi.koreainvestment.com:9443

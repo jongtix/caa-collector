@@ -1,2 +1,12 @@
 # Production 환경 전용 설정
 # 추가적인 prod 환경 설정이 필요한 경우 여기에 작성
+
+# Management 포트 분리 (보안)
+# - 메인 포트(8080): 외부 노출, 비즈니스 로직만
+# - Management 포트(9090): 내부 전용, Actuator 엔드포인트
+management:
+  endpoints:
+    web:
+      base-path: /internal/management
+  server:
+    port: 9090
