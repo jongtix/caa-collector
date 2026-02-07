@@ -8,26 +8,27 @@
 
 - **Last Updated**: 2026-02-07 (금)
 - **Current Phase**: Phase 2 Week 2 (진행률 24%)
-- **Focus**: 배포 자동화 (NAS Private Registry, Docker, CI/CD)
+- **Focus**: 배포 자동화 (Docker Hub, Docker, CI/CD)
 - **Deadline**: 2026-02-22 (일)
-- **Remaining**: 44시간 (15일)
+- **Remaining**: 38.5시간 (15일)
 
 ---
 
 ## 🎯 지금 해야 할 일 (This Week: 2026-02-09 ~ 02-15)
 
-### 배포 인프라 구축 (총 17시간)
+### 배포 인프라 구축 (총 11.5시간)
 
-- [ ] **NAS Private Registry 구축** (6시간, CRITICAL)
-  - Docker Registry 컨테이너 설치 + TLS 인증서 설정
-  - GitHub Public Repo + NAS Private Registry 전략
-  - 참조: [DEPLOYMENT.md - NAS Private Registry](../../docs/DEPLOYMENT.md#nas-private-registry-구축)
+- [ ] **Docker Hub 설정** (0.5시간, CRITICAL)
+  - Docker Hub 계정 생성 및 Access Token 발급
+  - GitHub Secrets 설정 (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN)
+  - 참조: [MSA/ADR-0011: Docker Hub 공개 배포 전략](../../docs/adr/ADR-0011-docker-hub-public-deployment.md)
 
 - [ ] **컨테이너화** (8시간)
-  - Dockerfile Multi-stage Build (JAR 레이어 분리)
-  - Docker Compose (MySQL 8.0, Redis 7.0, Collector)
-  - Nginx 리버스 프록시 + TLS 설정 (ADR-0015)
-  - 환경변수 설정 (.env 구조화)
+  - Dockerfile Multi-stage Build (JAR 레이어 분리, Non-root 사용자)
+  - .dockerignore 설정 (빌드 컨텍스트 최적화)
+  - 로컬 테스트 및 디버깅 (docker build, docker run)
+  - Docker Compose 최종 검증 (MySQL 8.0, Redis 7.0, Collector)
+  - 환경변수 최종 점검 (.env 구조화)
 
 - [ ] **CI/CD 보안 스캔** (2시간)
   - GitHub Dependabot 활성화 (주간 PR 자동 생성)
@@ -92,6 +93,7 @@
 ## 📌 참고
 
 ### 기술 결정 (ADR)
+- [MSA/ADR-0011: Docker Hub 공개 배포 전략](../../docs/adr/ADR-0011-docker-hub-public-deployment.md)
 - [ADR-0016: 글로벌 시장 스케줄 아키텍처](adr/0016-global-market-schedule-architecture.md)
 - [ADR-0017: Database Migration Strategy](adr/0017-database-migration-strategy.md)
 - [ADR-0018: Dockerfile Shell Injection 완화](adr/0018-dockerfile-shell-injection-mitigation.md)
@@ -105,7 +107,7 @@
 ### 진행 상황
 - Phase 2 진행률: **24%** (13.3h / 57.3h)
 - Week 1 완료: 문서화 (3.5h) + 관심종목 편집 (8h) + 보안 (1.8h)
-- Week 2-3 남은 작업: 44시간
+- Week 2-3 남은 작업: 38.5시간 (Docker Hub 전략으로 5.5시간 절약)
 - MVP 목표: 2026-04-05 (Phase 5 완료)
 
 ---
