@@ -1,5 +1,8 @@
 # Prod 프로필 테스트 환경 설정
 # SecurityConfigProdProfileTest에서 사용
+#
+# 주의: 포트 설정은 테스트 클래스의 @SpringBootTest properties에서 동적으로 설정
+# (포트 충돌 방지를 위해 18080/19090 사용)
 management:
   endpoints:
     web:
@@ -14,6 +17,8 @@ management:
   health:
     redis:
       enabled: false
+  server:
+    port: 19090  # SecurityConfigProdProfileTest에서 오버라이드됨
 
 spring:
   # Testcontainers가 DataSource 설정을 자동으로 주입하므로 별도 설정 불필요
