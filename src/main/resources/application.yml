@@ -1,6 +1,6 @@
 spring:
   application:
-    name: AlgorithmicTradingWithClaudeCode
+    name: caa-collector
   jackson:
     property-naming-strategy: SNAKE_CASE
   jpa:
