@@ -7,10 +7,10 @@
 ## Header
 
 - **Last Updated**: 2026-02-08 (일)
-- **Current Phase**: Phase 2 Week 2 (진행률 55%)
-- **Focus**: 배포 자동화 (CI/CD, 보안 스캔)
+- **Current Phase**: Phase 2 Week 2 (진행률 58%)
+- **Focus**: 배포 자동화 (CI/CD 파이프라인)
 - **Deadline**: 2026-02-22 (일)
-- **Remaining**: 25.5시간 (14일)
+- **Remaining**: 22.5시간 (14일)
 
 ---
 
@@ -31,10 +31,10 @@
   - ✅ **.gitignore 강화**: .env.*, secrets/**, logs/ 추가
   - ✅ 문서화: DEPLOYMENT.md, .env.example, README.md, MILESTONE.md 50%
 
-- [ ] **CI/CD 보안 스캔** (2시간)
-  - GitHub Dependabot 활성화 (주간 PR 자동 생성)
-  - Trivy 스캔 추가 (CVSS 7.0 이상 빌드 실패)
-  - ADR-0014 작성 (보안 스캔 전략)
+- [x] **CI/CD 보안 스캔** (1.5시간) ✅ **완료 (2026-02-08)**
+  - ✅ GitHub Dependabot 활성화 (주간 PR 자동 생성)
+  - ✅ Trivy GitHub Actions 추가 (Gradle + Docker 이미지 스캔, CVSS 7.0 이상 빌드 실패)
+  - ✅ ADR-0014 완료 (2026-02-02): Dependabot + Trivy 전략
 
 - [ ] **스케줄 리팩터링** (1시간)
   - MA-19: DateFormatConstants.KST_ZONE_ID 전역 적용 확인
@@ -56,10 +56,10 @@
   - Health Check 엔드포인트 확장
   - 롤백 전략 설계 및 테스트
 
-- [ ] **모니터링 및 관리** (10시간)
-  - Portainer 대시보드 구성
+- [ ] **모니터링 및 관리** (3.5시간)
   - JSON 로그 포맷 + 레벨 표준화
   - MySQL 백업 스크립트 + 복구 테스트
+  - ~~Portainer 대시보드 구성~~ → Phase 3으로 연기
 
 - [ ] **문서화** (7시간)
   - DEPLOYMENT.md 작성 (배포 가이드, 트러블슈팅 FAQ)
@@ -106,11 +106,11 @@
 - 상세: [MILESTONE.md - Phase 2 Week 1](MILESTONE.md#week-1-문서화--관심종목-편집-반영-2026-01-26-월--02-01-일)
 
 ### 진행 상황
-- Phase 2 진행률: **55%** (31.8h / 57.3h)
+- Phase 2 진행률: **58%** (33.3h / 57.3h)
 - Week 1 완료: 문서화 (3.5h) + 관심종목 편집 (8h) + 보안 (1.8h) = 13.3h ✅
 - Week 2 완료: Docker Hub (0.5h) + 컨테이너화/보안/성능 (12.5h) + 문서화 (5.5h) = 18.5h ✅
-- Week 2-3 남은 작업: 25.5시간
-  - CI/CD 보안 스캔 (2h)
+- Week 2-3 완료: CI/CD 보안 스캔 (1.5h) = 1.5h ✅
+- Week 2-3 남은 작업: 22.5시간
   - 스케줄 리팩터링 (1h)
   - CI/CD 파이프라인 (9h)
   - Watchtower 자동 배포 (10h)
