@@ -85,6 +85,9 @@ class RestClientConfigProfileTest {
     @SpringBootTest
     @ActiveProfiles({"log-prod", "prod-test"})
     @Import(MySQLTestcontainersConfig.class)
+    @TestPropertySource(properties = {
+            "LOG_FILE_PATH=build/test-logs"
+    })
     @DisplayName("prod 프로필에서 LoggingInterceptor 등록 안 됨")
     static class ProdProfileTest {
 
