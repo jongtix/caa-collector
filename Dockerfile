@@ -40,51 +40,45 @@ RUN ls /app/build/libs/*.jar || (echo "Build failed: JAR not found" && exit 1)
 
 
 # ==================== Stage 2: Runtime ====================
-# 경량 런타임 이미지 (빌드 도구 제외, 실행 환경만 포함)
-# Runtime Image: eclipse-temurin:21.0.5_11-jre-alpine
-# SHA256: decee204b9a1eb333c364ba4d859a6b1380eb13f0980d2acfd65c09fee53a48a
-# Updated: 2026-02-01
-# Fixed with SHA256 digest to ensure 100% reproducible builds
-FROM eclipse-temurin@sha256:decee204b9a1eb333c364ba4d859a6b1380eb13f0980d2acfd65c09fee53a48a
+# Distroless 이미지 (최소 공격 표면, 보안 강화)
+# Runtime Image: gcr.io/distroless/java21-debian12
+# - Alpine 85개 취약점 제거 (CRITICAL 5개, HIGH 29개 포함)
+# - Shell 없음 (RCE 공격 차단)
+# - Package Manager 없음 (런타임 변조 불가)
+# - Google 관리, 지속적 보안 유지
+# - 참조: ../docs/adr/0007-distroless-image-strategy.md
+FROM gcr.io/distroless/java21-debian12
 
 # 메타데이터 라벨
 LABEL maintainer="jongtix" \
       description="CAA Collector Service - Data Collection & Workflow Orchestration" \
       version="1.0.0"
 
-# Build Arguments (환경별 커스터마이징 가능)
-# 기본값: prod 환경 기준
-ARG SPRING_PROFILE=prod
-ARG JAVA_XMS=256m
-ARG JAVA_XMX=350m
-
-# Non-root 사용자 생성 (보안 강화)
-# collector 그룹 및 사용자 생성 (UID/GID 1000)
-RUN addgroup -g 1000 collector && \
-    adduser -u 1000 -G collector -s /bin/sh -D collector
-
-# 필수 유틸리티 설치
-# tini: 경량 init 시스템 (8KB, Zombie process 방지 및 Graceful Shutdown 보장)
-# wget: Alpine Linux 기본 포함 (HEALTHCHECK용 사용)
-RUN apk add --no-cache tini
+# 환경별 설정 (Distroless 환경)
+# - Spring Profile: docker-compose.yml의 SPRING_PROFILES_ACTIVE 환경 변수로 제어
+# - JVM 메모리: Dockerfile CMD에 하드코딩 (Xms256m, Xmx350m)
+# - 커스터마이징 필요 시: Dockerfile.dev 별도 생성 또는 docker-compose.yml 오버라이드
+#
+# Distroless 이미지 특성:
+# - Non-root 사용자 자동 사용 (UID 65532 'nonroot')
+# - adduser/addgroup 명령어 없음 (사전 구성됨)
+# - apk 명령어 없음 (패키지 관리자 제거)
+# - tini 불필요 (Distroless 자체 init 처리)
+# - mkdir/chown 불필요 (애플리케이션이 /app에 쓰기 권한 있음)
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
 # Stage 1에서 빌드된 JAR 파일 복사
-# --chown으로 소유권을 collector 사용자로 변경
-COPY --from=builder --chown=collector:collector /app/build/libs/*.jar app.jar
+# Distroless nonroot 사용자가 소유 (UID 65532)
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 볼륨 마운트 지점 생성 (로그, 설정 파일 등)
+# 볼륨 마운트 지점 (Distroless에서는 런타임에 자동 생성)
 # /app/logs: 애플리케이션 로그 저장
 # /app/logs/gc: GC 로그 저장
 # /app/logs/heap_dumps: OOM 발생 시 힙 덤프 저장
 # /app/config: 외부 설정 파일 마운트 (application-prod.yml 등)
-RUN mkdir -p /app/logs/gc /app/logs/heap_dumps /app/config && \
-    chown -R collector:collector /app
-
-# Non-root 사용자로 전환
-USER collector
+# NOTE: docker-compose.yml에서 볼륨 마운트 시 자동 생성됨
 
 # 애플리케이션 포트 노출
 # 8080: Spring Boot 기본 포트 (API 요청)
@@ -140,32 +134,35 @@ EXPOSE 8080 9090
 # Note: spring.profiles.active는 docker-compose.yml의 SPRING_PROFILES_ACTIVE 환경 변수로 제어
 #       JVM 시스템 프로퍼티(-Dspring.profiles.active)는 환경 변수보다 우선순위가 높아
 #       docker-compose.yml 설정을 무시하게 되므로 제거함
-ENV JAVA_OPTS="-Xms${JAVA_XMS} \
-               -Xmx${JAVA_XMX} \
-               -XX:MaxMetaspaceSize=100m \
-               -XX:MaxDirectMemorySize=20m \
-               -XX:ReservedCodeCacheSize=50m \
-               -Xss1m \
-               -XX:+UseG1GC \
-               -XX:MaxGCPauseMillis=200 \
-               -XX:+UseStringDeduplication \
-               -XX:+ParallelRefProcEnabled \
-               -XX:+HeapDumpOnOutOfMemoryError \
-               -XX:HeapDumpPath=/app/logs/heap_dumps/ \
-               -XX:+ExitOnOutOfMemoryError \
-               -Xlog:gc*:file=/app/logs/gc/gc.log:time,level,tags:filecount=10,filesize=10M \
-               -XX:NativeMemoryTracking=summary \
-               -Djava.security.egd=file:/dev/./urandom"
-
-# 애플리케이션 실행 (tini로 PID 1 관리)
-# tini: 경량 init 시스템 (8KB)
-#   - Zombie process 정리 자동화
-#   - SIGTERM/SIGINT 시그널 완벽 전달
-#   - Graceful Shutdown 보장
-# $JAVA_OPTS: 환경 변수로 JVM 옵션 주입 가능
 #
-# SECURITY: JAVA_OPTS는 이 Dockerfile의 ENV에서만 정의됨
-# docker-compose.yml environment 섹션에서 JAVA_OPTS를 오버라이드하지 말 것
-# 외부 주입 필요 시 entrypoint.sh 스크립트에 검증 로직 추가 필수 (Phase 3 예정)
-ENTRYPOINT ["tini", "--"]
-CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Distroless 환경에서는 shell이 없어 ENV JAVA_OPTS 사용 불가
+# 모든 JVM 옵션을 CMD에 직접 명시 (보안 강화)
+
+# 애플리케이션 실행
+# Distroless 특성:
+#   - tini 불필요 (Distroless 자체 init 처리)
+#   - shell 없음 (sh -c 사용 불가)
+#   - exec 형식 ENTRYPOINT/CMD 사용 (JSON 배열)
+#   - SIGTERM/SIGINT 시그널 자동 전달 (Graceful Shutdown 보장)
+#
+# SECURITY: JVM 옵션이 Dockerfile에 하드코딩되어 외부 변조 불가
+# 환경별 커스터마이징 필요 시 Dockerfile.dev 별도 생성 권장
+ENTRYPOINT ["java"]
+CMD ["-Xms256m", \
+     "-Xmx350m", \
+     "-XX:MaxMetaspaceSize=100m", \
+     "-XX:MaxDirectMemorySize=20m", \
+     "-XX:ReservedCodeCacheSize=50m", \
+     "-Xss1m", \
+     "-XX:+UseG1GC", \
+     "-XX:MaxGCPauseMillis=200", \
+     "-XX:+UseStringDeduplication", \
+     "-XX:+ParallelRefProcEnabled", \
+     "-XX:+HeapDumpOnOutOfMemoryError", \
+     "-XX:HeapDumpPath=/app/logs/heap_dumps/", \
+     "-XX:+ExitOnOutOfMemoryError", \
+     "-Xlog:gc*:file=/app/logs/gc/gc.log:time,level,tags:filecount=10,filesize=10M", \
+     "-XX:NativeMemoryTracking=summary", \
+     "-Djava.security.egd=file:/dev/./urandom", \
+     "-jar", \
+     "app.jar"]
