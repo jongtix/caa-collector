@@ -179,6 +179,159 @@ class SecurityConfigTest {
     }
 
     @Nested
+    @DisplayName("Actuator 엔드포인트 노출 제한 테스트 (TEST-M-02)")
+    class ActuatorEndpointExposureTest {
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/metrics 접근 시 401")
+        void metrics_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/metrics";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            // SecurityFilterChain에서 /internal/management/**는 hasRole(ACTUATOR) 요구
+            // 인증되지 않은 요청은 Actuator가 처리하기 전에 401 반환
+            // 이는 보안상 더 안전함 (엔드포인트 존재 여부를 노출하지 않음)
+            assertThat(response.getStatusCode())
+                    .as("metrics 엔드포인트는 인증되지 않은 사용자에게 401 반환 (엔드포인트 존재 여부 미노출)")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/env 접근 시 401")
+        void env_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/env";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            assertThat(response.getStatusCode())
+                    .as("env 엔드포인트는 인증되지 않은 사용자에게 401 반환 (환경변수 노출 방지)")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/beans 접근 시 401")
+        void beans_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/beans";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            assertThat(response.getStatusCode())
+                    .as("beans 엔드포인트는 인증되지 않은 사용자에게 401 반환")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/configprops 접근 시 401")
+        void configprops_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/configprops";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            assertThat(response.getStatusCode())
+                    .as("configprops 엔드포인트는 인증되지 않은 사용자에게 401 반환 (설정 정보 노출 방지)")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/heapdump 접근 시 401")
+        void heapdump_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/heapdump";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            assertThat(response.getStatusCode())
+                    .as("heapdump 엔드포인트는 인증되지 않은 사용자에게 401 반환 (민감 정보 노출 방지)")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증 없이 노출되지 않은 /internal/management/threaddump 접근 시 401")
+        void threaddump_엔드포인트_인증없이_접근불가() {
+            // given
+            var url = getBaseUrl() + "/internal/management/threaddump";
+
+            // when
+            var response = restTemplate.getForEntity(url, String.class);
+
+            // then
+            assertThat(response.getStatusCode())
+                    .as("threaddump 엔드포인트는 인증되지 않은 사용자에게 401 반환")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("인증된 사용자도 노출되지 않은 엔드포인트 접근 불가 (404 또는 500)")
+        void 인증된_사용자도_노출되지않은_엔드포인트_접근불가() {
+            // given
+            var headers = new HttpHeaders();
+            headers.set(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(VALID_USERNAME, VALID_PASSWORD));
+            var url = getBaseUrl() + "/internal/management/metrics";
+
+            // when
+            var response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    String.class
+            );
+
+            // then
+            // 인증된 사용자라도 exposure.include에 포함되지 않은 엔드포인트는 접근 불가
+            // SecurityFilterChain 통과 → Actuator에서 404 또는 GlobalExceptionHandler에서 500 반환
+            assertThat(response.getStatusCode())
+                    .as("인증된 사용자도 노출되지 않은 엔드포인트는 404 또는 500")
+                    .isIn(HttpStatus.NOT_FOUND, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        @Test
+        @DisplayName("설정된 엔드포인트만 노출됨 (health, info)")
+        void 설정된_엔드포인트만_노출됨() {
+            // given & when
+            var healthResponse = restTemplate.getForEntity(
+                    getBaseUrl() + "/internal/management/health",
+                    String.class
+            );
+            var infoResponse = restTemplate.getForEntity(
+                    getBaseUrl() + "/internal/management/info",
+                    String.class
+            );
+            var metricsResponse = restTemplate.getForEntity(
+                    getBaseUrl() + "/internal/management/metrics",
+                    String.class
+            );
+
+            // then
+            assertThat(healthResponse.getStatusCode())
+                    .as("health는 노출되어 접근 가능")
+                    .isEqualTo(HttpStatus.OK);
+
+            assertThat(infoResponse.getStatusCode())
+                    .as("info는 노출되어 있지만 인증 필요")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+
+            assertThat(metricsResponse.getStatusCode())
+                    .as("metrics는 노출되지 않아 인증 없으면 401")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @Nested
     @DisplayName("보안 응답 헤더 테스트 (M-04)")
     class SecurityHeadersTest {
 

@@ -1,0 +1,50 @@
+# Actuator 기본 경로 테스트 전용 프로파일
+# 운영 환경의 local/dev 프로파일 동작을 검증하기 위한 설정
+# (base-path 설정 없음 -> 기본 /actuator 사용)
+
+management:
+  endpoints:
+    web:
+      # base-path 설정 없음 -> 기본 /actuator 사용
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+
+spring:
+  # Testcontainers가 DataSource 설정을 자동으로 주입하므로 별도 설정 불필요
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Test Security 설정
+security:
+  actuator:
+    username: testuser
+    password: testpass
+  redis:
+    hmac-secret: test-hmac-secret-for-junit-tests-minimum-32-characters-long
+  token:
+    encryption-key: dGVzdEFlczI1NktleUZvckp1bml0VGVzdHMhMTIzNDU=
+
+# Test KIS API 설정
+kis:
+  base-url: https://test.example.com
+  user-id: test-user
+  accounts:
+    - name: TestAccount
+      account-number: "00000000-00"
+      app-key: test-app-key
+      app-secret: test-app-secret
