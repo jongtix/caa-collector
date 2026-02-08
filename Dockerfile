@@ -108,8 +108,8 @@ EXPOSE 8080 9090
 #   - Total JVM: ~552MB
 #
 # Recommended Container Settings (docker-compose.yml):
-#   mem_limit: 640m        # JVM 552MB + OS overhead 88MB (Phase 2)
-#   mem_reservation: 512m  # Guaranteed memory
+#   mem_limit: 700m        # JVM 552MB + OS 88MB + Buffer 60MB (Phase 2)
+#   mem_reservation: 550m  # Guaranteed memory
 #   oom_score_adj: -200    # OOM Killer priority (protect from early termination)
 #
 # NAS Environment: Safe within 8GB RAM (supports multiple services)
