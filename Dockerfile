@@ -77,8 +77,10 @@ COPY --from=builder --chown=collector:collector /app/build/libs/*.jar app.jar
 
 # 볼륨 마운트 지점 생성 (로그, 설정 파일 등)
 # /app/logs: 애플리케이션 로그 저장
+# /app/logs/gc: GC 로그 저장
+# /app/logs/heap_dumps: OOM 발생 시 힙 덤프 저장
 # /app/config: 외부 설정 파일 마운트 (application-prod.yml 등)
-RUN mkdir -p /app/logs /app/config && \
+RUN mkdir -p /app/logs/gc /app/logs/heap_dumps /app/config && \
     chown -R collector:collector /app
 
 # Non-root 사용자로 전환
@@ -127,6 +129,12 @@ EXPOSE 8080 9090
 #   -XX:MaxGCPauseMillis=200: GC 일시정지 목표 200ms
 #   -XX:+UseStringDeduplication: 문자열 중복 제거 (메모리 절감)
 #   -XX:+ParallelRefProcEnabled: 병렬 참조 처리 (GC 성능 향상)
+# OOM Handling & Monitoring:
+#   -XX:+HeapDumpOnOutOfMemoryError: OOM 발생 시 힙 덤프 자동 생성
+#   -XX:HeapDumpPath=/app/logs/heap_dumps/: 힙 덤프 저장 경로
+#   -XX:+ExitOnOutOfMemoryError: OOM 발생 시 JVM 즉시 종료 (컨테이너 재시작 트리거)
+#   -Xlog:gc*:file=/app/logs/gc/gc.log:time,level,tags:filecount=10,filesize=10M: GC 로그 (10개 파일 × 10MB 로테이션)
+#   -XX:NativeMemoryTracking=summary: 네이티브 메모리 추적 활성화
 # Other:
 #   -Djava.security.egd: 난수 생성 최적화 (컨테이너 환경)
 # Note: spring.profiles.active는 docker-compose.yml의 SPRING_PROFILES_ACTIVE 환경 변수로 제어
@@ -142,6 +150,11 @@ ENV JAVA_OPTS="-Xms${JAVA_XMS} \
                -XX:MaxGCPauseMillis=200 \
                -XX:+UseStringDeduplication \
                -XX:+ParallelRefProcEnabled \
+               -XX:+HeapDumpOnOutOfMemoryError \
+               -XX:HeapDumpPath=/app/logs/heap_dumps/ \
+               -XX:+ExitOnOutOfMemoryError \
+               -Xlog:gc*:file=/app/logs/gc/gc.log:time,level,tags:filecount=10,filesize=10M \
+               -XX:NativeMemoryTracking=summary \
                -Djava.security.egd=file:/dev/./urandom"
 
 # 애플리케이션 실행 (tini로 PID 1 관리)
@@ -150,5 +163,9 @@ ENV JAVA_OPTS="-Xms${JAVA_XMS} \
 #   - SIGTERM/SIGINT 시그널 완벽 전달
 #   - Graceful Shutdown 보장
 # $JAVA_OPTS: 환경 변수로 JVM 옵션 주입 가능
+#
+# SECURITY: JAVA_OPTS는 이 Dockerfile의 ENV에서만 정의됨
+# docker-compose.yml environment 섹션에서 JAVA_OPTS를 오버라이드하지 말 것
+# 외부 주입 필요 시 entrypoint.sh 스크립트에 검증 로직 추가 필수 (Phase 3 예정)
 ENTRYPOINT ["tini", "--"]
 CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
