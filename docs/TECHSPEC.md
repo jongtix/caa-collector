@@ -1405,30 +1405,13 @@ Redis Value: AES256_GCM_ENCRYPTED_BASE64_STRING... (AES-256-GCM 암호화)
 spring:
   application:
     name: caa-collector
+  profiles:
+    group:
+      prod: log-prod, db-prod
 
-  datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
-        show_sql: false
-
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST}
-      port: ${SPRING_DATA_REDIS_PORT}
-
-  security:
-    user:
-      name: ${ACTUATOR_USERNAME}
-      password: ${ACTUATOR_PASSWORD}
+management:
+  endpoints.web.exposure.include: health,info
+  endpoint.health.show-details: when-authorized
 
 security:
   actuator:
@@ -1441,11 +1424,12 @@ security:
 
 kis:
   base-url: https://openapi.koreainvestment.com:9443
-  app-key: ${KIS_APP_KEY}
-  app-secret: ${KIS_APP_SECRET}
-  account:
-    number: ${KIS_ACCOUNT_NUMBER}
-    product-code: ${KIS_ACCOUNT_PRODUCT_CODE}
+  user-id: ${KIS_ID}
+  accounts:
+    - name: 연금저축
+      account-number: ${KIS_ACCOUNT_PENSION_NUMBER}
+      app-key: ${KIS_ACCOUNT_PENSION_APP_KEY}
+      app-secret: ${KIS_ACCOUNT_PENSION_APP_SECRET}
 
 advisor:
   base-url: ${ADVISOR_BASE_URL:http://localhost:8081}
@@ -1459,6 +1443,29 @@ shedlock:
   default-lock-at-most-for: 10m
   default-lock-at-least-for: 5s
 ```
+
+### Docker Compose 환경 변수 (프로덕션)
+
+```yaml
+# docker-compose.yml
+environment:
+  - SPRING_PROFILES_ACTIVE=prod
+  # MySQL SSL 활성화 (Phase 2 Week 2 조기 구현)
+  - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/caa_db?useSSL=true&requireSSL=true&verifyServerCertificate=false&allowPublicKeyRetrieval=false&serverTimezone=Asia/Seoul
+  - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
+  - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
+  - SPRING_DATA_REDIS_HOST=redis
+  - SPRING_DATA_REDIS_PORT=6379
+  - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+  - KIS_ID=${KIS_ID}
+  - KIS_ACCOUNT_PENSION_*=${KIS_ACCOUNT_PENSION_*}
+  - ACTUATOR_USERNAME=${ACTUATOR_USERNAME}
+  - ACTUATOR_PASSWORD=${ACTUATOR_PASSWORD}
+  - REDIS_KEY_HMAC_SECRET=${REDIS_KEY_HMAC_SECRET}
+  - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
+```
+
+**로컬 개발 환경**: `docker-compose.override.yml`에서 `useSSL=false`로 오버라이드 (개발 편의성)
 
 ### RateLimiter 설정
 
