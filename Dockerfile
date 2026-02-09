@@ -1,7 +1,8 @@
 # ==================== Stage 1: Build ====================
 # Gradle 빌드를 수행하는 단계 (빌드 도구 및 의존성 포함)
 # Eclipse Temurin 기반으로 Gradle wrapper 사용
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# SECURITY: SHA256 다이제스트 고정으로 Build Stage Supply Chain Attack 방어
+FROM eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
@@ -47,7 +48,7 @@ RUN ls /app/build/libs/*.jar || (echo "Build failed: JAR not found" && exit 1)
 # - Package Manager 없음 (런타임 변조 불가)
 # - Google 관리, 지속적 보안 유지
 # - 참조: ../docs/adr/0007-distroless-image-strategy.md
-FROM gcr.io/distroless/java21-debian12
+FROM gcr.io/distroless/java21-debian12@sha256:04f730658c79b99d42fadf2f8dd11c9d441cee10ce5eaa7cad4a75eaca2cb52a
 
 # 메타데이터 라벨
 LABEL maintainer="jongtix" \
@@ -72,6 +73,11 @@ WORKDIR /app
 # Stage 1에서 빌드된 JAR 파일 복사
 # Distroless nonroot 사용자가 소유 (UID 65532)
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# SECURITY: Distroless nonroot 사용자 명시적 선언 (UID 65532, GID 65532)
+# Distroless 이미지는 기본적으로 nonroot 사용자를 사용하지만,
+# 명시적 선언을 통해 보안 감사 시 명확성 제공 및 우발적 root 실행 방지
+USER nonroot:nonroot
 
 # 볼륨 마운트 지점 (Distroless에서는 런타임에 자동 생성)
 # /app/logs: 애플리케이션 로그 저장
