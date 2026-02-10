@@ -14,6 +14,7 @@ import com.custom.trader.stockprice.overseas.entity.OverseasIndexDailyPrice;
 import com.custom.trader.stockprice.overseas.entity.OverseasStockDailyPrice;
 import com.custom.trader.stockprice.overseas.repository.OverseasIndexDailyPriceRepository;
 import com.custom.trader.stockprice.overseas.repository.OverseasStockDailyPriceRepository;
+import com.custom.trader.stockprice.util.QuadFunction;
 import com.custom.trader.stockprice.util.TriFunction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,9 +23,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -61,10 +62,13 @@ public class StockPricePersistenceService {
     /**
      * Generic 저장 메서드.
      *
+     * <p>priceItems의 날짜 범위를 추출하여 해당 범위만 DB에서 조회합니다.
+     * 전체 거래일을 로드하지 않으므로 메모리 효율이 높습니다.</p>
+     *
      * @param code 종목/지수 코드
      * @param exchange 거래소 코드 (국내는 null)
      * @param priceItems DTO 리스트
-     * @param existingDatesFetcher 기존 날짜 조회 함수
+     * @param rangeDatesFetcher 날짜 범위 기반 기존 날짜 조회 함수 (code, exchange, startDate, endDate)
      * @param dateFieldExtractor DTO에서 날짜 필드 추출 함수
      * @param mapper DTO -> Entity 변환 함수
      * @param saver Entity 리스트 저장 Consumer
@@ -76,12 +80,25 @@ public class StockPricePersistenceService {
             String code,
             String exchange,
             List<D> priceItems,
-            BiFunction<String, String, Set<LocalDate>> existingDatesFetcher,
+            QuadFunction<String, String, LocalDate, LocalDate, Set<LocalDate>> rangeDatesFetcher,
             Function<D, String> dateFieldExtractor,
             TriFunction<String, String, D, E> mapper,
             Consumer<List<E>> saver
     ) {
-        Set<LocalDate> existingDates = existingDatesFetcher.apply(code, exchange);
+        if (priceItems.isEmpty()) {
+            return 0;
+        }
+
+        LocalDate minDate = priceItems.stream()
+                .map(p -> StockPriceConstants.parseDate(dateFieldExtractor.apply(p)))
+                .min(Comparator.naturalOrder())
+                .orElseThrow();
+        LocalDate maxDate = priceItems.stream()
+                .map(p -> StockPriceConstants.parseDate(dateFieldExtractor.apply(p)))
+                .max(Comparator.naturalOrder())
+                .orElseThrow();
+
+        Set<LocalDate> existingDates = rangeDatesFetcher.apply(code, exchange, minDate, maxDate);
 
         List<E> toSave = priceItems.stream()
                 .filter(p -> !existingDates.contains(StockPriceConstants.parseDate(dateFieldExtractor.apply(p))))
@@ -109,7 +126,8 @@ public class StockPricePersistenceService {
     ) {
         return saveGeneric(
                 stockCode, null, priceItems,
-                (code, exchange) -> domesticStockRepository.findAllTradeDatesByStockCode(code),
+                (code, exchange, start, end) -> domesticStockRepository
+                        .findTradeDatesByStockCodeAndTradeDateBetween(code, start, end),
                 p -> p.stckBsopDate(),
                 (code, exchange, p) -> mapper.toDomesticStock(code, p),
                 domesticStockRepository::saveAll
@@ -130,7 +148,8 @@ public class StockPricePersistenceService {
     ) {
         return saveGeneric(
                 indexCode, null, priceItems,
-                (code, exchange) -> domesticIndexRepository.findAllTradeDatesByIndexCode(code),
+                (code, exchange, start, end) -> domesticIndexRepository
+                        .findTradeDatesByIndexCodeAndTradeDateBetween(code, start, end),
                 p -> p.stckBsopDate(),
                 (code, exchange, p) -> mapper.toDomesticIndex(code, p),
                 domesticIndexRepository::saveAll
@@ -153,8 +172,8 @@ public class StockPricePersistenceService {
     ) {
         return saveGeneric(
                 stockCode, exchangeCode, priceItems,
-                (code, exchange) -> overseasStockRepository
-                        .findAllTradeDatesByStockCodeAndExchangeCode(code, exchange),
+                (code, exchange, start, end) -> overseasStockRepository
+                        .findTradeDatesByStockCodeAndExchangeCodeAndTradeDateBetween(code, exchange, start, end),
                 p -> p.xymd(),
                 (code, exchange, p) -> mapper.toOverseasStock(code, exchange, p),
                 overseasStockRepository::saveAll
@@ -177,8 +196,8 @@ public class StockPricePersistenceService {
     ) {
         return saveGeneric(
                 indexCode, exchangeCode, priceItems,
-                (code, exchange) -> overseasIndexRepository
-                        .findAllTradeDatesByIndexCodeAndExchangeCode(code, exchange),
+                (code, exchange, start, end) -> overseasIndexRepository
+                        .findTradeDatesByIndexCodeAndExchangeCodeAndTradeDateBetween(code, exchange, start, end),
                 p -> p.stckBsopDate(),
                 (code, exchange, p) -> mapper.toOverseasIndex(code, exchange, p),
                 overseasIndexRepository::saveAll

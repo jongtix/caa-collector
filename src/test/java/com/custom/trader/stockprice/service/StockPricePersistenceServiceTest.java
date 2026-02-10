@@ -26,9 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -80,7 +78,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(domesticStockRepository.findAllTradeDatesByStockCode("005930"))
+            given(domesticStockRepository.findTradeDatesByStockCodeAndTradeDateBetween(eq("005930"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of(LocalDate.of(2024, 1, 31)));
 
             var mockEntity = DomesticStockDailyPrice.builder()
@@ -109,7 +107,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(domesticStockRepository.findAllTradeDatesByStockCode("005930"))
+            given(domesticStockRepository.findTradeDatesByStockCodeAndTradeDateBetween(eq("005930"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of(LocalDate.of(2024, 1, 31)));
 
             // when
@@ -134,7 +132,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(domesticStockRepository.findAllTradeDatesByStockCode("005930"))
+            given(domesticStockRepository.findTradeDatesByStockCodeAndTradeDateBetween(eq("005930"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of());
 
             var mockEntity = DomesticStockDailyPrice.builder()
@@ -170,7 +168,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(domesticIndexRepository.findAllTradeDatesByIndexCode("0001"))
+            given(domesticIndexRepository.findTradeDatesByIndexCodeAndTradeDateBetween(eq("0001"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of(LocalDate.of(2024, 1, 31)));
 
             var mockEntity = DomesticIndexDailyPrice.builder()
@@ -208,7 +206,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(overseasStockRepository.findAllTradeDatesByStockCodeAndExchangeCode("AAPL", "NAS"))
+            given(overseasStockRepository.findTradeDatesByStockCodeAndExchangeCodeAndTradeDateBetween(eq("AAPL"), eq("NAS"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of(LocalDate.of(2024, 1, 31)));
 
             var mockEntity = OverseasStockDailyPrice.builder()
@@ -245,7 +243,7 @@ class StockPricePersistenceServiceTest {
                     )
             );
 
-            given(overseasIndexRepository.findAllTradeDatesByIndexCodeAndExchangeCode("COMP", "NAS"))
+            given(overseasIndexRepository.findTradeDatesByIndexCodeAndExchangeCodeAndTradeDateBetween(eq("COMP"), eq("NAS"), any(LocalDate.class), any(LocalDate.class)))
                     .willReturn(Set.of(LocalDate.of(2024, 1, 31)));
 
             var mockEntity = OverseasIndexDailyPrice.builder()

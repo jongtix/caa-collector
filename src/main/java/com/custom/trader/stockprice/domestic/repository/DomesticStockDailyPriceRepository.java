@@ -15,6 +15,6 @@ public interface DomesticStockDailyPriceRepository extends JpaRepository<Domesti
 
     boolean existsByStockCodeAndTradeDate(String stockCode, LocalDate tradeDate);
 
-    @Query("SELECT d.tradeDate FROM DomesticStockDailyPrice d WHERE d.stockCode = :stockCode")
-    Set<LocalDate> findAllTradeDatesByStockCode(@Param("stockCode") String stockCode);
+    @Query("SELECT d.tradeDate FROM DomesticStockDailyPrice d WHERE d.stockCode = :stockCode AND d.tradeDate BETWEEN :startDate AND :endDate")
+    Set<LocalDate> findTradeDatesByStockCodeAndTradeDateBetween(@Param("stockCode") String stockCode, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

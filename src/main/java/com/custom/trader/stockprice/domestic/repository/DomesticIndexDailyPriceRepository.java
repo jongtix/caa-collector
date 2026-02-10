@@ -15,6 +15,6 @@ public interface DomesticIndexDailyPriceRepository extends JpaRepository<Domesti
 
     boolean existsByIndexCodeAndTradeDate(String indexCode, LocalDate tradeDate);
 
-    @Query("SELECT d.tradeDate FROM DomesticIndexDailyPrice d WHERE d.indexCode = :indexCode")
-    Set<LocalDate> findAllTradeDatesByIndexCode(@Param("indexCode") String indexCode);
+    @Query("SELECT d.tradeDate FROM DomesticIndexDailyPrice d WHERE d.indexCode = :indexCode AND d.tradeDate BETWEEN :startDate AND :endDate")
+    Set<LocalDate> findTradeDatesByIndexCodeAndTradeDateBetween(@Param("indexCode") String indexCode, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

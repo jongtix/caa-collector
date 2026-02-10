@@ -15,6 +15,6 @@ public interface OverseasIndexDailyPriceRepository extends JpaRepository<Oversea
 
     boolean existsByIndexCodeAndExchangeCodeAndTradeDate(String indexCode, String exchangeCode, LocalDate tradeDate);
 
-    @Query("SELECT o.tradeDate FROM OverseasIndexDailyPrice o WHERE o.indexCode = :indexCode AND o.exchangeCode = :exchangeCode")
-    Set<LocalDate> findAllTradeDatesByIndexCodeAndExchangeCode(@Param("indexCode") String indexCode, @Param("exchangeCode") String exchangeCode);
+    @Query("SELECT o.tradeDate FROM OverseasIndexDailyPrice o WHERE o.indexCode = :indexCode AND o.exchangeCode = :exchangeCode AND o.tradeDate BETWEEN :startDate AND :endDate")
+    Set<LocalDate> findTradeDatesByIndexCodeAndExchangeCodeAndTradeDateBetween(@Param("indexCode") String indexCode, @Param("exchangeCode") String exchangeCode, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }
