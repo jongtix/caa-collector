@@ -1,0 +1,29 @@
+name: Security Scan (Trivy)
+
+on:
+  push:
+    # branches 필터 미사용: paths 필터만으로 트리거 제어
+    # feature/**, bugfix/**, chore/** 등 모든 브랜치에서 관련 파일 변경 시 실행
+    paths:
+      - '**/*.java'
+      - '**/*.gradle'
+      - 'gradle-wrapper.properties'
+      - 'Dockerfile'
+      - '.github/workflows/security-scan.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 5'  # 매주 금요일 16:00 KST (UTC+9)
+
+jobs:
+  call-reusable-security-scan:
+    name: Call Reusable Java Security Scan
+    uses: jongtix/caa/.github/workflows/reusable-java-security-scan.yml@main
+    with:
+      working-directory: '.'
+      docker-image-name: 'caa-collector'
+      java-version: '21'
+    permissions:
+      contents: read
+      security-events: write

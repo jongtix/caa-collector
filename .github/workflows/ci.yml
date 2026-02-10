@@ -1,0 +1,29 @@
+name: CI (Build & Test)
+
+on:
+  push:
+    # branches 필터 미사용: paths 필터만으로 트리거 제어
+    # feature/**, bugfix/**, chore/** 등 모든 브랜치에서 관련 파일 변경 시 실행
+    paths:
+      - '**/*.java'
+      - '**/*.gradle'
+      - 'gradle-wrapper.properties'
+      - 'Dockerfile'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.java'
+      - '**/*.gradle'
+      - 'gradle-wrapper.properties'
+      - 'Dockerfile'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+jobs:
+  call-reusable-ci:
+    name: Call Reusable Java CI
+    uses: jongtix/caa/.github/workflows/reusable-java-ci.yml@main
+    with:
+      working-directory: '.'
+      java-version: '21'
