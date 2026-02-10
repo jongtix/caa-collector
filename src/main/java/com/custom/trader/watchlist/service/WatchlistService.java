@@ -90,6 +90,7 @@ public class WatchlistService {
                 .collect(Collectors.toMap(WatchlistGroup::getGroupCode, Function.identity()));
 
         // 5. 각 그룹별 동기화
+        // 의도된 순차 호출: KIS API는 그룹별 종목 조회 엔드포인트만 제공하므로 그룹 단위 순차 호출이 필수
         List<WatchlistGroup> groupsToSave = new ArrayList<>();
         for (WatchlistGroupResponse.GroupItem apiGroup : apiGroups) {
             WatchlistGroup group = syncGroup(userId, apiGroup, existingGroups);
