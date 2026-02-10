@@ -64,7 +64,10 @@
 - [x] 로컬 테스트 및 디버깅 (dev, log-dev, db-dev 프로파일 검증)
 - [x] 문서화 (DEPLOYMENT.md, .env.example, README 업데이트)
 #### 2. CI/CD 파이프라인 🚧 진행 중 (10.5시간)
-- [ ] GitHub Actions 워크플로우 작성 (빌드, 테스트, 이미지 푸시) - 9시간
+- [x] Reusable Workflow CI/CD 전략 (ADR-0009) ✅ **완료 (2026-02-10)**
+  - ✅ CAA 루트: reusable-java-ci.yml, reusable-java-security-scan.yml 생성
+  - ✅ caa-collector: Caller 워크플로우 (ci.yml, security-scan.yml) + dependabot.yml 생성
+  - ✅ 기존 워크플로우 삭제, Action 버전 통일 (v6/v5), push branches 필터 제거
 - [ ] Docker Hub 연동 (docker/login-action@v3)
 - [x] 보안 스캔 통합 (Dependabot + Trivy) - 1.5시간 ✅ **완료 (2026-02-08)**
   - ✅ ADR-0014 완료 (2026-02-02): Dependabot + Trivy 전략

@@ -47,7 +47,8 @@
 ### 배포 자동화 완성 (총 27시간)
 
 - [ ] **CI/CD 파이프라인** (9시간)
-  - GitHub Actions 워크플로우 (빌드, 테스트, 이미지 푸시)
+  - [x] Reusable Workflow CI/CD 전략 (ADR-0009) ✅ 2026-02-10
+  - GitHub Actions 워크플로우 (Docker Hub 이미지 푸시)
   - Semantic Versioning + Git Tag 자동화
   - Discord/Slack 빌드 알림
 
