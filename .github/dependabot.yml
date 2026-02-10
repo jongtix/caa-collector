@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # Gradle 의존성
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "16:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "jongtix"
+    labels:
+      - "dependencies"
+      - "gradle"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "16:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "jongtix"
+    labels:
+      - "dependencies"
+      - "github-actions"
