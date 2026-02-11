@@ -17,9 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.custom.trader.stockprice.constant.StockPriceConstants.PAGE_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -222,6 +224,96 @@ class OverseasIndexStrategyTest {
             assertThatThrownBy(() -> strategy.backfillHistoricalPrices(overseasIndex, startDate, endDate))
                     .isInstanceOf(KisApiException.class)
                     .hasMessage("API 호출 실패");
+        }
+
+        @Test
+        @DisplayName("2페이지 백필 시 커서 계산 및 날짜 필드명 검증")
+        void 두페이지_백필_시_커서_계산_및_날짜_필드명_검증() {
+            // given
+            LocalDate backfillStart = LocalDate.of(2024, 1, 1);
+            LocalDate backfillEnd = LocalDate.of(2024, 5, 31);
+
+            // 첫 번째 페이지: 100개 (2024-05-31 ~ 2024-02-22)
+            var firstPageItems = createPriceItems("20240531", 100);
+            LocalDate firstPageLastDate = LocalDate.of(2024, 2, 22);
+            LocalDate secondPageEndDate = LocalDate.of(2024, 2, 21);
+
+            // 두 번째 페이지: 50개 (2024-02-21 ~ 2024-01-03)
+            var secondPageItems = createPriceItems("20240221", 50);
+
+            given(kisStockPriceService.getOverseasIndexDailyPrices(
+                    eq("COMP"), eq(exchangeCode), eq(backfillStart), eq(backfillEnd))
+            ).willReturn(firstPageItems);
+
+            given(kisStockPriceService.getOverseasIndexDailyPrices(
+                    eq("COMP"), eq(exchangeCode), eq(backfillStart), eq(secondPageEndDate))
+            ).willReturn(secondPageItems);
+
+            given(persistenceService.saveOverseasIndexPrices(eq("COMP"), eq(exchangeCode), any()))
+                    .willReturn(100, 50);
+
+            // when
+            strategy.backfillHistoricalPrices(overseasIndex, backfillStart, backfillEnd);
+
+            // then
+            verify(kisStockPriceService).getOverseasIndexDailyPrices("COMP", exchangeCode, backfillStart, backfillEnd);
+            verify(kisStockPriceService).getOverseasIndexDailyPrices("COMP", exchangeCode, backfillStart, secondPageEndDate);
+        }
+
+        @Test
+        @DisplayName("100개 후 빈 응답으로 종료")
+        void 백개_후_빈_응답으로_종료() {
+            // given
+            LocalDate backfillStart = LocalDate.of(2024, 1, 1);
+            LocalDate backfillEnd = LocalDate.of(2024, 4, 30);
+
+            // 첫 번째 페이지: 정확히 100개 (2024-04-30 ~ 2024-01-22)
+            var firstPageItems = createPriceItems("20240430", PAGE_SIZE);
+            LocalDate firstPageLastDate = LocalDate.of(2024, 1, 22);
+            LocalDate secondPageEndDate = LocalDate.of(2024, 1, 21);
+
+            // 두 번째 페이지: 빈 응답
+            given(kisStockPriceService.getOverseasIndexDailyPrices(
+                    eq("COMP"), eq(exchangeCode), eq(backfillStart), eq(backfillEnd))
+            ).willReturn(firstPageItems);
+
+            given(kisStockPriceService.getOverseasIndexDailyPrices(
+                    eq("COMP"), eq(exchangeCode), eq(backfillStart), eq(secondPageEndDate))
+            ).willReturn(Collections.emptyList());
+
+            given(persistenceService.saveOverseasIndexPrices(eq("COMP"), eq(exchangeCode), eq(firstPageItems)))
+                    .willReturn(100);
+
+            // when
+            strategy.backfillHistoricalPrices(overseasIndex, backfillStart, backfillEnd);
+
+            // then
+            verify(kisStockPriceService).getOverseasIndexDailyPrices("COMP", exchangeCode, backfillStart, backfillEnd);
+            verify(kisStockPriceService).getOverseasIndexDailyPrices("COMP", exchangeCode, backfillStart, secondPageEndDate);
+        }
+
+        /**
+         * 테스트용 가격 데이터 생성 헬퍼 메서드.
+         * 주어진 시작 날짜부터 count개만큼 과거로 이동하며 데이터를 생성합니다.
+         * stckBsopDate 필드를 사용합니다 (해외 지수).
+         *
+         * @param startDateStr 시작 날짜 (yyyyMMdd)
+         * @param count 생성할 아이템 개수
+         * @return 생성된 PriceItem 리스트
+         */
+        private List<OverseasIndexDailyPriceResponse.PriceItem> createPriceItems(String startDateStr, int count) {
+            LocalDate currentDate = LocalDate.parse(startDateStr, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+            List<OverseasIndexDailyPriceResponse.PriceItem> items = new ArrayList<>();
+
+            for (int i = 0; i < count; i++) {
+                String dateStr = currentDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+                items.add(new OverseasIndexDailyPriceResponse.PriceItem(
+                        dateStr, "15100.25", "15000.50", "15200.00", "14900.00", "5000000000", "N"
+                ));
+                currentDate = currentDate.minusDays(1);
+            }
+
+            return items;
         }
     }
 

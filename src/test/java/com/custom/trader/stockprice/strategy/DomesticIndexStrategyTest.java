@@ -17,9 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.custom.trader.stockprice.constant.StockPriceConstants.PAGE_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -198,6 +200,95 @@ class DomesticIndexStrategyTest {
             assertThatThrownBy(() -> strategy.backfillHistoricalPrices(domesticIndex, startDate, endDate))
                     .isInstanceOf(KisApiException.class)
                     .hasMessage("API 호출 실패");
+        }
+
+        @Test
+        @DisplayName("2페이지 백필 시 커서 계산 및 날짜 필드명 검증")
+        void 두페이지_백필_시_커서_계산_및_날짜_필드명_검증() {
+            // given
+            LocalDate backfillStart = LocalDate.of(2024, 1, 1);
+            LocalDate backfillEnd = LocalDate.of(2024, 5, 31);
+
+            // 첫 번째 페이지: 100개 (2024-05-31 ~ 2024-02-22)
+            var firstPageItems = createPriceItems("20240531", 100);
+            LocalDate firstPageLastDate = LocalDate.of(2024, 2, 22);
+            LocalDate secondPageEndDate = LocalDate.of(2024, 2, 21);
+
+            // 두 번째 페이지: 50개 (2024-02-21 ~ 2024-01-03)
+            var secondPageItems = createPriceItems("20240221", 50);
+
+            given(kisStockPriceService.getDomesticIndexDailyPrices(
+                    eq("0001"), eq(backfillStart), eq(backfillEnd))
+            ).willReturn(firstPageItems);
+
+            given(kisStockPriceService.getDomesticIndexDailyPrices(
+                    eq("0001"), eq(backfillStart), eq(secondPageEndDate))
+            ).willReturn(secondPageItems);
+
+            given(persistenceService.saveDomesticIndexPrices(eq("0001"), any()))
+                    .willReturn(100, 50);
+
+            // when
+            strategy.backfillHistoricalPrices(domesticIndex, backfillStart, backfillEnd);
+
+            // then
+            verify(kisStockPriceService).getDomesticIndexDailyPrices("0001", backfillStart, backfillEnd);
+            verify(kisStockPriceService).getDomesticIndexDailyPrices("0001", backfillStart, secondPageEndDate);
+        }
+
+        @Test
+        @DisplayName("100개 후 빈 응답으로 종료")
+        void 백개_후_빈_응답으로_종료() {
+            // given
+            LocalDate backfillStart = LocalDate.of(2024, 1, 1);
+            LocalDate backfillEnd = LocalDate.of(2024, 4, 30);
+
+            // 첫 번째 페이지: 정확히 100개 (2024-04-30 ~ 2024-01-22)
+            var firstPageItems = createPriceItems("20240430", PAGE_SIZE);
+            LocalDate firstPageLastDate = LocalDate.of(2024, 1, 22);
+            LocalDate secondPageEndDate = LocalDate.of(2024, 1, 21);
+
+            // 두 번째 페이지: 빈 응답
+            given(kisStockPriceService.getDomesticIndexDailyPrices(
+                    eq("0001"), eq(backfillStart), eq(backfillEnd))
+            ).willReturn(firstPageItems);
+
+            given(kisStockPriceService.getDomesticIndexDailyPrices(
+                    eq("0001"), eq(backfillStart), eq(secondPageEndDate))
+            ).willReturn(Collections.emptyList());
+
+            given(persistenceService.saveDomesticIndexPrices(eq("0001"), eq(firstPageItems)))
+                    .willReturn(100);
+
+            // when
+            strategy.backfillHistoricalPrices(domesticIndex, backfillStart, backfillEnd);
+
+            // then
+            verify(kisStockPriceService).getDomesticIndexDailyPrices("0001", backfillStart, backfillEnd);
+            verify(kisStockPriceService).getDomesticIndexDailyPrices("0001", backfillStart, secondPageEndDate);
+        }
+
+        /**
+         * 테스트용 가격 데이터 생성 헬퍼 메서드.
+         * 주어진 시작 날짜부터 count개만큼 과거로 이동하며 데이터를 생성합니다.
+         *
+         * @param startDateStr 시작 날짜 (yyyyMMdd)
+         * @param count 생성할 아이템 개수
+         * @return 생성된 PriceItem 리스트
+         */
+        private List<DomesticIndexDailyPriceResponse.PriceItem> createPriceItems(String startDateStr, int count) {
+            LocalDate currentDate = LocalDate.parse(startDateStr, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+            List<DomesticIndexDailyPriceResponse.PriceItem> items = new ArrayList<>();
+
+            for (int i = 0; i < count; i++) {
+                String dateStr = currentDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+                items.add(new DomesticIndexDailyPriceResponse.PriceItem(
+                        dateStr, "2500.50", "2520.00", "2490.00", "2510.25", "500000000", "75000000000"
+                ));
+                currentDate = currentDate.minusDays(1);
+            }
+
+            return items;
         }
     }
 
