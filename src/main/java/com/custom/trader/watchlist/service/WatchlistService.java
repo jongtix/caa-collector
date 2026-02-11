@@ -9,6 +9,7 @@ import com.custom.trader.kis.dto.watchlist.WatchlistStockResponse;
 import com.custom.trader.kis.service.KisWatchlistService;
 import com.custom.trader.watchlist.entity.WatchlistGroup;
 import com.custom.trader.watchlist.entity.WatchlistStock;
+import com.custom.trader.watchlist.mapper.WatchlistMapper;
 import com.custom.trader.watchlist.repository.WatchlistGroupRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -147,47 +148,57 @@ public class WatchlistService {
      * @return 실제로 동기화된 종목 개수 (null/중복 제거 후)
      */
     private int syncStocks(WatchlistGroup group, List<WatchlistStockResponse.StockItem> apiStocks) {
-        // 1. API 종목을 Map으로 변환 (stockCode → StockItem)
-        // 방어적 처리: null stockCode 필터링, 중복 시 나중 값 우선 (merge 함수)
-        Map<String, WatchlistStockResponse.StockItem> apiStockMap = apiStocks.stream()
-                .filter(stock -> {
-                    if (stock.jongCode() == null || stock.jongCode().isBlank()) {
-                        log.warn("Skipping stock with null/blank stockCode in group '{}': {}",
-                                group.getGroupCode(), stock);
-                        return false;
-                    }
-                    return true;
-                })
-                .collect(Collectors.toMap(
-                        WatchlistStockResponse.StockItem::jongCode,
-                        Function.identity(),
-                        (existing, duplicate) -> {
-                            log.warn("Duplicate stockCode '{}' in group '{}'. API returned: existing={}, duplicate={}. Using latest value.",
-                                    existing.jongCode(), group.getGroupCode(),
-                                    existing.htsKorIsnm(), duplicate.htsKorIsnm());
-                            return duplicate; // 나중 값 우선 (API 응답 순서 기준)
-                        }
-                ));
+        // 1. API/DB 종목을 Map으로 변환 (방어적 처리 포함)
+        Map<String, WatchlistStockResponse.StockItem> apiStockMap =
+                WatchlistMapper.buildApiStockMap(apiStocks, group.getGroupCode());
+        Map<String, WatchlistStock> dbStockMap =
+                WatchlistMapper.buildDbStockMap(group.getStocks());
 
-        // 2. DB 종목을 Map으로 변환 (stockCode → WatchlistStock)
-        Map<String, WatchlistStock> dbStockMap = group.getStocks().stream()
-                .collect(Collectors.toMap(
-                        WatchlistStock::getStockCode,
-                        Function.identity()
-                ));
+        // 2. DB에만 있는 종목 삭제 (API에 없는 종목)
+        removeObsoleteStocks(group, apiStockMap, dbStockMap);
 
-        // 3. 삭제할 종목 식별 (DB에만 있고 API에 없는 종목)
+        // 3. 추가/업데이트할 종목 처리 (API 기준)
+        upsertStocks(group, apiStockMap, dbStockMap);
+
+        return apiStockMap.size();
+    }
+
+    /**
+     * DB에만 있고 API에 없는 종목 삭제.
+     *
+     * @param group 관심종목 그룹
+     * @param apiStockMap API에서 조회한 종목 Map
+     * @param dbStockMap DB에 있는 종목 Map
+     */
+    private void removeObsoleteStocks(WatchlistGroup group,
+                                      Map<String, WatchlistStockResponse.StockItem> apiStockMap,
+                                      Map<String, WatchlistStock> dbStockMap) {
         List<WatchlistStock> stocksToRemove = dbStockMap.values().stream()
                 .filter(dbStock -> !apiStockMap.containsKey(dbStock.getStockCode()))
                 .toList();
 
-        // 4. 삭제 실행
         stocksToRemove.forEach(group::removeStock);
+
         if (!stocksToRemove.isEmpty()) {
             log.debug("Removed {} stocks from group '{}'", stocksToRemove.size(), group.getGroupName());
         }
+    }
 
-        // 5. 추가/업데이트할 종목 처리 (필터링된 Map 기준)
+    /**
+     * 종목 추가 또는 업데이트 처리.
+     *
+     * <ul>
+     *   <li>기존 종목: updateStockInfo() 호출 (backfillCompleted 보존)</li>
+     *   <li>신규 종목: addStock() 호출 (backfillCompleted=false 초기화)</li>
+     * </ul>
+     *
+     * @param group 관심종목 그룹
+     * @param apiStockMap API에서 조회한 종목 Map
+     * @param dbStockMap DB에 있는 종목 Map
+     */
+    private void upsertStocks(WatchlistGroup group,
+                              Map<String, WatchlistStockResponse.StockItem> apiStockMap,
+                              Map<String, WatchlistStock> dbStockMap) {
         for (WatchlistStockResponse.StockItem apiStock : apiStockMap.values()) {
             String stockCode = apiStock.jongCode();
             WatchlistStock dbStock = dbStockMap.get(stockCode);
@@ -212,8 +223,6 @@ public class WatchlistService {
                 log.debug("Added new stock '{}' (backfillCompleted=false)", stockCode);
             }
         }
-
-        return apiStockMap.size();
     }
 
     @Transactional(readOnly = true)
