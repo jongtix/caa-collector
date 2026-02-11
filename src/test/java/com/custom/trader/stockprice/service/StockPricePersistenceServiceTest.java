@@ -149,6 +149,22 @@ class StockPricePersistenceServiceTest {
             verify(domesticStockRepository, times(1)).saveAll(anyList());
             verify(mapper, times(2)).toDomesticStock(eq("005930"), any());
         }
+
+        @Test
+        @DisplayName("빈 리스트 입력 시 아무것도 저장하지 않음")
+        void 빈_리스트_입력() {
+            // given
+            var emptyPriceItems = List.<DomesticStockDailyPriceResponse.PriceItem>of();
+
+            // when
+            int savedCount = persistenceService.saveDomesticStockPrices("005930", emptyPriceItems);
+
+            // then
+            assertThat(savedCount).isEqualTo(0);
+            verify(domesticStockRepository, never()).findTradeDatesByStockCodeAndTradeDateBetween(any(), any(), any());
+            verify(domesticStockRepository, never()).saveAll(any());
+            verify(mapper, never()).toDomesticStock(any(), any());
+        }
     }
 
     @Nested
