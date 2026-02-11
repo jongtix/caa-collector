@@ -1,5 +1,6 @@
 package com.custom.trader.kis.service;
 
+import com.custom.trader.common.util.LogMaskingUtil;
 import com.custom.trader.kis.client.KisRestClient;
 import com.custom.trader.kis.config.KisAccountProperties;
 import com.custom.trader.kis.config.KisApiEndpoint;
@@ -27,7 +28,7 @@ public class KisWatchlistService {
         var account = kisAuthService.getDefaultAccount();
         var accessToken = kisAuthService.getAccessToken(account.name());
 
-        log.info("Fetching watchlist groups for user: {}", kisProperties.userId());
+        log.info("Fetching watchlist groups for user: {}", LogMaskingUtil.maskUserId(kisProperties.userId()));
 
         var response = kisRestClient.get(
                 KisApiEndpoint.WATCHLIST_GROUP,

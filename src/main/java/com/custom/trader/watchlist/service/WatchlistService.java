@@ -2,6 +2,7 @@ package com.custom.trader.watchlist.service;
 
 import com.custom.trader.common.enums.AssetType;
 import com.custom.trader.common.enums.MarketCode;
+import com.custom.trader.common.util.LogMaskingUtil;
 import com.custom.trader.kis.config.KisProperties;
 import com.custom.trader.kis.dto.watchlist.WatchlistGroupResponse;
 import com.custom.trader.kis.dto.watchlist.WatchlistStockResponse;
@@ -62,7 +63,7 @@ public class WatchlistService {
     @Transactional
     public void syncWatchlist() {
         String userId = kisProperties.userId();
-        log.info("Starting watchlist sync for user: {}", userId);
+        log.info("Starting watchlist sync for user: {}", LogMaskingUtil.maskUserId(userId));
 
         // 1. API에서 모든 그룹 조회
         List<WatchlistGroupResponse.GroupItem> apiGroups = kisWatchlistService.getWatchlistGroups();
@@ -99,7 +100,7 @@ public class WatchlistService {
 
         // 6. 배치 저장
         watchlistGroupRepository.saveAll(groupsToSave);
-        log.info("Watchlist sync completed for user: {}", userId);
+        log.info("Watchlist sync completed for user: {}", LogMaskingUtil.maskUserId(userId));
     }
 
     private WatchlistGroup syncGroup(String userId,
