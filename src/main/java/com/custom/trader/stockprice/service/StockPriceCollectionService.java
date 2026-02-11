@@ -1,5 +1,6 @@
 package com.custom.trader.stockprice.service;
 
+import com.custom.trader.common.constant.DateFormatConstants;
 import com.custom.trader.common.enums.AssetType;
 import com.custom.trader.kis.exception.KisApiException;
 import com.custom.trader.stockprice.strategy.StockPriceStrategy;
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
-import static com.custom.trader.stockprice.constant.StockPriceConstants.*;
+import static com.custom.trader.common.constant.DateFormatConstants.DEFAULT_START_DATE;
+import static com.custom.trader.stockprice.constant.StockPriceConstants.PAGE_SIZE;
 
 /**
  * 주식 가격 수집 오케스트레이션을 담당하는 Facade 서비스.

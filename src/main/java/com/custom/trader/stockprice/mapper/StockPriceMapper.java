@@ -1,5 +1,6 @@
 package com.custom.trader.stockprice.mapper;
 
+import com.custom.trader.common.constant.DateFormatConstants;
 import com.custom.trader.kis.dto.stockprice.DomesticIndexDailyPriceResponse;
 import com.custom.trader.kis.dto.stockprice.DomesticStockDailyPriceResponse;
 import com.custom.trader.kis.dto.stockprice.OverseasIndexDailyPriceResponse;
@@ -13,8 +14,6 @@ import org.mapstruct.Mapping;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
-import static com.custom.trader.stockprice.constant.StockPriceConstants.DATE_FORMATTER;
 
 /**
  * 주식 가격 DTO ↔ Entity 변환을 담당하는 MapStruct Mapper.
@@ -120,7 +119,7 @@ public interface StockPriceMapper {
      * @return 변환된 LocalDate
      */
     default LocalDate parseDate(String dateStr) {
-        return com.custom.trader.stockprice.constant.StockPriceConstants.parseDate(dateStr);
+        return DateFormatConstants.parseDate(dateStr);
     }
 
     /**

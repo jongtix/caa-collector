@@ -1,7 +1,7 @@
 package com.custom.trader.stockprice.strategy;
 
+import com.custom.trader.common.constant.DateFormatConstants;
 import com.custom.trader.kis.service.KisStockPriceService;
-import com.custom.trader.stockprice.constant.StockPriceConstants;
 import com.custom.trader.stockprice.service.StockPricePersistenceService;
 import com.custom.trader.watchlist.entity.WatchlistStock;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +58,7 @@ public class OverseasIndexStrategy implements StockPriceStrategy {
             }
 
             LocalDate lastDate = prices.stream()
-                    .map(p -> StockPriceConstants.parseDate(p.stckBsopDate()))
+                    .map(p -> DateFormatConstants.parseDate(p.stckBsopDate()))
                     .min(Comparator.naturalOrder())
                     .orElseThrow(() -> new IllegalStateException("Cannot extract date from empty price list"));
             currentEndDate = lastDate.minusDays(1);

@@ -1,10 +1,10 @@
 package com.custom.trader.stockprice.service;
 
+import com.custom.trader.common.constant.DateFormatConstants;
 import com.custom.trader.kis.dto.stockprice.DomesticIndexDailyPriceResponse;
 import com.custom.trader.kis.dto.stockprice.DomesticStockDailyPriceResponse;
 import com.custom.trader.kis.dto.stockprice.OverseasIndexDailyPriceResponse;
 import com.custom.trader.kis.dto.stockprice.OverseasStockDailyPriceResponse;
-import com.custom.trader.stockprice.constant.StockPriceConstants;
 import com.custom.trader.stockprice.domestic.entity.DomesticIndexDailyPrice;
 import com.custom.trader.stockprice.domestic.entity.DomesticStockDailyPrice;
 import com.custom.trader.stockprice.domestic.repository.DomesticIndexDailyPriceRepository;
@@ -90,18 +90,18 @@ public class StockPricePersistenceService {
         }
 
         LocalDate minDate = priceItems.stream()
-                .map(p -> StockPriceConstants.parseDate(dateFieldExtractor.apply(p)))
+                .map(p -> DateFormatConstants.parseDate(dateFieldExtractor.apply(p)))
                 .min(Comparator.naturalOrder())
                 .orElseThrow();
         LocalDate maxDate = priceItems.stream()
-                .map(p -> StockPriceConstants.parseDate(dateFieldExtractor.apply(p)))
+                .map(p -> DateFormatConstants.parseDate(dateFieldExtractor.apply(p)))
                 .max(Comparator.naturalOrder())
                 .orElseThrow();
 
         Set<LocalDate> existingDates = rangeDatesFetcher.apply(code, exchange, minDate, maxDate);
 
         List<E> toSave = priceItems.stream()
-                .filter(p -> !existingDates.contains(StockPriceConstants.parseDate(dateFieldExtractor.apply(p))))
+                .filter(p -> !existingDates.contains(DateFormatConstants.parseDate(dateFieldExtractor.apply(p))))
                 .map(p -> mapper.apply(code, exchange, p))
                 .toList();
 
