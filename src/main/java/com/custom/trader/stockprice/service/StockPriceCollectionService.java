@@ -9,9 +9,9 @@ import com.custom.trader.watchlist.repository.WatchlistStockRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -53,15 +53,15 @@ public class StockPriceCollectionService {
      */
     public void collectDailyPrices() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);
-        Page<WatchlistStock> page;
+        Slice<WatchlistStock> slice;
         BatchStatistics stats = new BatchStatistics();
 
         do {
-            page = watchlistStockRepository.findByBackfillCompleted(true, pageable);
-            log.info("Collecting daily prices for {} stocks (page {}/{})",
-                    page.getNumberOfElements(), page.getNumber() + 1, page.getTotalPages());
+            slice = watchlistStockRepository.findByBackfillCompleted(true, pageable);
+            log.info("Collecting daily prices for {} stocks (page {})",
+                    slice.getNumberOfElements(), slice.getNumber() + 1);
 
-            page.getContent().forEach(stock -> {
+            slice.getContent().forEach(stock -> {
                 stats.incrementTotal();
                 try {
                     var today = LocalDate.now(ZoneId.of("Asia/Seoul"));
@@ -79,8 +79,8 @@ public class StockPriceCollectionService {
                 }
             });
 
-            pageable = page.nextPageable();
-        } while (page.hasNext());
+            pageable = slice.nextPageable();
+        } while (slice.hasNext());
 
         log.info("Daily price collection completed. {}", stats.getSummary());
 
@@ -96,15 +96,15 @@ public class StockPriceCollectionService {
      */
     public void backfillHistoricalPrices() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);
-        Page<WatchlistStock> page;
+        Slice<WatchlistStock> slice;
         BatchStatistics stats = new BatchStatistics();
 
         do {
-            page = watchlistStockRepository.findByBackfillCompleted(false, pageable);
-            log.info("Backfilling historical prices for {} stocks (page {}/{})",
-                    page.getNumberOfElements(), page.getNumber() + 1, page.getTotalPages());
+            slice = watchlistStockRepository.findByBackfillCompleted(false, pageable);
+            log.info("Backfilling historical prices for {} stocks (page {})",
+                    slice.getNumberOfElements(), slice.getNumber() + 1);
 
-            page.getContent().forEach(stock -> {
+            slice.getContent().forEach(stock -> {
                 stats.incrementTotal();
                 try {
                     var endDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
@@ -122,8 +122,8 @@ public class StockPriceCollectionService {
                 }
             });
 
-            pageable = page.nextPageable();
-        } while (page.hasNext());
+            pageable = slice.nextPageable();
+        } while (slice.hasNext());
 
         log.info("Historical price backfill completed. {}", stats.getSummary());
 
