@@ -16,7 +16,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 import static com.custom.trader.common.constant.DateFormatConstants.DEFAULT_START_DATE;
 import static com.custom.trader.stockprice.constant.StockPriceConstants.PAGE_SIZE;
@@ -71,7 +70,7 @@ public class StockPriceCollectionService {
             slice.getContent().forEach(stock -> {
                 stats.incrementTotal();
                 try {
-                    var today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+                    var today = LocalDate.now(DateFormatConstants.KST_ZONE_ID);
                     collectDailyPriceByAssetType(stock, today, today);
                     stats.incrementSuccess();
                 } catch (KisApiException e) {
@@ -119,7 +118,7 @@ public class StockPriceCollectionService {
             slice.getContent().forEach(stock -> {
                 stats.incrementTotal();
                 try {
-                    var endDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
+                    var endDate = LocalDate.now(DateFormatConstants.KST_ZONE_ID);
                     stockBackfillService.backfillSingleStock(stock, DEFAULT_START_DATE, endDate);
                     stats.incrementSuccess();
                 } catch (KisApiException e) {

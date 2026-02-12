@@ -1,5 +1,6 @@
 package com.custom.trader.common.entity;
 
+import com.custom.trader.common.constant.DateFormatConstants;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
@@ -20,12 +21,12 @@ public abstract class BaseEntity {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(DateFormatConstants.KST_ZONE_ID);
+        this.updatedAt = LocalDateTime.now(DateFormatConstants.KST_ZONE_ID);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(DateFormatConstants.KST_ZONE_ID);
     }
 }
