@@ -219,4 +219,30 @@ class KisWatchlistServiceTest {
             );
         }
     }
+
+    @Nested
+    @DisplayName("네트워크 에러 전파")
+    class NetworkErrorPropagation {
+
+        @Test
+        @DisplayName("KisRestClient 네트워크 에러 전파 검증")
+        void KisRestClient_네트워크_에러_전파() {
+            // given
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisProperties.userId()).willReturn("testUser");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.WATCHLIST_GROUP),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(WatchlistGroupResponse.class)
+            )).willThrow(new org.springframework.web.client.ResourceAccessException("Connection refused"));
+
+            // when & then
+            assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
+                    .isInstanceOf(org.springframework.web.client.ResourceAccessException.class)
+                    .hasMessageContaining("Connection refused");
+        }
+    }
 }

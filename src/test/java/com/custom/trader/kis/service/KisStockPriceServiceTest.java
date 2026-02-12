@@ -359,4 +359,58 @@ class KisStockPriceServiceTest {
                     .hasMessageContaining("No accounts configured");
         }
     }
+
+    @Nested
+    @DisplayName("네트워크 에러 전파")
+    class NetworkErrorPropagation {
+
+        @Test
+        @DisplayName("KisRestClient 네트워크 에러 전파 검증 (국내 주식)")
+        void KisRestClient_네트워크_에러_전파_국내주식() {
+            // given
+            var stockCode = "005930";
+            var startDate = LocalDate.of(2024, 1, 1);
+            var endDate = LocalDate.of(2024, 1, 5);
+
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.DOMESTIC_STOCK_DAILY_PRICE),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(DomesticStockDailyPriceResponse.class)
+            )).willThrow(new org.springframework.web.client.ResourceAccessException("Connection refused"));
+
+            // when & then
+            assertThatThrownBy(() -> kisStockPriceService.getDomesticStockDailyPrices(stockCode, startDate, endDate))
+                    .isInstanceOf(org.springframework.web.client.ResourceAccessException.class)
+                    .hasMessageContaining("Connection refused");
+        }
+
+        @Test
+        @DisplayName("KisRestClient 네트워크 에러 전파 검증 (해외 주식)")
+        void KisRestClient_네트워크_에러_전파_해외주식() {
+            // given
+            var stockCode = "AAPL";
+            var exchangeCode = "NAS";
+            var startDate = LocalDate.of(2024, 1, 1);
+            var endDate = LocalDate.of(2024, 1, 5);
+
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.OVERSEAS_STOCK_DAILY_PRICE),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(OverseasStockDailyPriceResponse.class)
+            )).willThrow(new org.springframework.web.client.ResourceAccessException("Read timed out"));
+
+            // when & then
+            assertThatThrownBy(() -> kisStockPriceService.getOverseasStockDailyPrices(stockCode, exchangeCode, startDate, endDate))
+                    .isInstanceOf(org.springframework.web.client.ResourceAccessException.class)
+                    .hasMessageContaining("Read timed out");
+        }
+    }
 }
