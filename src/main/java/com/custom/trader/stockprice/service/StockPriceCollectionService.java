@@ -52,6 +52,11 @@ public class StockPriceCollectionService {
      * 일간 가격 수집 (백필 완료된 종목 대상).
      *
      * <p>페이징 처리를 통해 대량 종목을 안전하게 처리합니다.</p>
+     *
+     * <p><strong>설계 노트:</strong> 이 메서드는 {@link #backfillHistoricalPrices()}와
+     * 페이징/예외처리 로직을 공유하지만, 의도적으로 분리되었습니다.
+     * 두 메서드는 도메인 개념(일간 vs 백필)이 달라 추상화 시 가독성 저하가 예상됩니다.
+     * Rule of Three 원칙에 따라 3번째 유사 메서드 추가 시 리팩토링을 고려하세요.</p>
      */
     public void collectDailyPrices() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);
@@ -95,6 +100,11 @@ public class StockPriceCollectionService {
      * 과거 가격 백필 (백필 미완료 종목 대상).
      *
      * <p>백필 작업은 {@link StockBackfillService}에 위임합니다.</p>
+     *
+     * <p><strong>설계 노트:</strong> 이 메서드는 {@link #collectDailyPrices()}와
+     * 페이징/예외처리 로직을 공유하지만, 의도적으로 분리되었습니다.
+     * 두 메서드는 도메인 개념(일간 vs 백필)이 달라 추상화 시 가독성 저하가 예상됩니다.
+     * Rule of Three 원칙에 따라 3번째 유사 메서드 추가 시 리팩토링을 고려하세요.</p>
      */
     public void backfillHistoricalPrices() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);

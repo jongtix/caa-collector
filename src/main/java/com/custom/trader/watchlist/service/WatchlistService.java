@@ -61,6 +61,12 @@ public class WatchlistService {
     private final WatchlistGroupRepository watchlistGroupRepository;
     private final KisProperties kisProperties;
 
+    /**
+     * 관심종목 3-way 동기화를 수행합니다.
+     *
+     * <p><b>성능 노트:</b> KIS API가 그룹/종목 조회를 분리 제공하므로
+     * API 레벨에서 N+1 패턴이 불가피합니다. DB LAZY 로딩도 이를 반영한 설계입니다.</p>
+     */
     @Transactional
     public void syncWatchlist() {
         String userId = kisProperties.userId();
