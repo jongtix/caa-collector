@@ -13,6 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
@@ -21,8 +23,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -244,6 +248,67 @@ class StockPriceCollectionServiceTest {
 
             // then
             verify(strategy).collectDailyPrice(any(), any(LocalDate.class), any(LocalDate.class));
+        }
+
+        @ParameterizedTest(name = "{0}개 종목 → Repository 호출 {1}회")
+        @CsvSource({
+                "99, 1",    // 경계값 미만
+                "100, 1",   // 경계값 정확히 (PAGE_SIZE)
+                "101, 2",   // 경계값 초과
+                "200, 2",   // 경계값 정확히 (2 * PAGE_SIZE)
+                "201, 3"    // 경계값 초과
+        })
+        @DisplayName("페이징 경계값 테스트 - 종목 개수별 Repository 호출 횟수 검증")
+        void shouldCallRepositoryCorrectNumberOfTimesBasedOnStockCount(int stockCount, int expectedRepositoryCalls) {
+            // given
+            List<WatchlistStock> allStocks = createStocks(stockCount);
+            List<Slice<WatchlistStock>> slices = createSlices(allStocks, StockPriceConstants.PAGE_SIZE);
+
+            given(watchlistStockRepository.findByBackfillCompleted(eq(true), any()))
+                    .willAnswer(invocation -> slices.get(0))  // 첫 번째 슬라이스
+                    .willAnswer(invocation -> slices.size() > 1 ? slices.get(1) : new SliceImpl<>(Collections.emptyList(), PageRequest.of(1, StockPriceConstants.PAGE_SIZE), false))  // 두 번째 슬라이스
+                    .willAnswer(invocation -> slices.size() > 2 ? slices.get(2) : new SliceImpl<>(Collections.emptyList(), PageRequest.of(2, StockPriceConstants.PAGE_SIZE), false));  // 세 번째 슬라이스
+
+            given(strategyFactory.getStrategy(any())).willReturn(strategy);
+            given(strategy.collectDailyPrice(any(), any(LocalDate.class), any(LocalDate.class))).willReturn(1);
+
+            // when
+            stockPriceCollectionService.collectDailyPrices();
+
+            // then
+            verify(watchlistStockRepository, times(expectedRepositoryCalls)).findByBackfillCompleted(eq(true), any());
+            verify(strategy, times(stockCount)).collectDailyPrice(any(), any(LocalDate.class), any(LocalDate.class));
+        }
+
+        private List<WatchlistStock> createStocks(int count) {
+            return IntStream.range(0, count)
+                    .mapToObj(i -> {
+                        var stock = WatchlistStock.builder()
+                                .stockCode(String.format("%06d", i))
+                                .stockName("종목" + i)
+                                .marketCode(MarketCode.KRX)
+                                .assetType(AssetType.DOMESTIC_STOCK)
+                                .build();
+                        stock.markBackfillCompleted();
+                        return stock;
+                    })
+                    .toList();
+        }
+
+        private List<Slice<WatchlistStock>> createSlices(List<WatchlistStock> allStocks, int pageSize) {
+            List<Slice<WatchlistStock>> slices = new ArrayList<>();
+            int totalPages = (int) Math.ceil((double) allStocks.size() / pageSize);
+
+            for (int page = 0; page < totalPages; page++) {
+                int fromIndex = page * pageSize;
+                int toIndex = Math.min(fromIndex + pageSize, allStocks.size());
+                List<WatchlistStock> pageStocks = allStocks.subList(fromIndex, toIndex);
+                boolean hasNext = page < totalPages - 1;
+
+                slices.add(new SliceImpl<>(pageStocks, PageRequest.of(page, pageSize), hasNext));
+            }
+
+            return slices;
         }
     }
 

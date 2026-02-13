@@ -12,17 +12,22 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -243,6 +248,87 @@ class KisWatchlistServiceTest {
             assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
                     .isInstanceOf(org.springframework.web.client.ResourceAccessException.class)
                     .hasMessageContaining("Connection refused");
+        }
+    }
+
+    @Nested
+    @DisplayName("예외 복구 전략 테스트")
+    class ExceptionRecoveryTests {
+
+        @Test
+        @DisplayName("DataAccessException 발생 시 예외 전파")
+        void shouldPropagateDataAccessException() {
+            // given
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisProperties.userId()).willReturn("testUser");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.WATCHLIST_GROUP),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(WatchlistGroupResponse.class)
+            )).willThrow(new org.springframework.dao.DataAccessException("DB 연결 실패") {});
+
+            // when & then
+            assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class)
+                    .hasMessageContaining("DB 연결 실패");
+        }
+
+        @Test
+        @DisplayName("RuntimeException 발생 시 예외 전파")
+        void shouldPropagateRuntimeException() {
+            // given
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisProperties.userId()).willReturn("testUser");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.WATCHLIST_GROUP),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(WatchlistGroupResponse.class)
+            )).willThrow(new RuntimeException("예상치 못한 오류"));
+
+            // when & then
+            assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("예상치 못한 오류");
+        }
+
+        @Test
+        @DisplayName("KisApiException 발생 시 예외 전파")
+        void shouldPropagateKisApiException() {
+            // given
+            String groupCode = "001";
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisRestClient.get(
+                    eq(KisApiEndpoint.WATCHLIST_STOCK),
+                    any(),
+                    eq("test-token"),
+                    eq(testAccount),
+                    eq(WatchlistStockResponse.class)
+            )).willThrow(new KisApiException("API 인증 실패"));
+
+            // when & then
+            assertThatThrownBy(() -> kisWatchlistService.getStocksByGroup(groupCode))
+                    .isInstanceOf(KisApiException.class)
+                    .hasMessageContaining("API 인증 실패");
+        }
+
+        @Test
+        @DisplayName("NullPointerException 발생 시 예외 전파")
+        void shouldPropagateNullPointerException() {
+            // given
+            given(kisAuthService.getDefaultAccount()).willReturn(testAccount);
+            given(kisAuthService.getAccessToken(testAccount.name())).willReturn("test-token");
+            given(kisProperties.userId()).willReturn(null);  // NPE 유발
+
+            // when & then
+            assertThatThrownBy(() -> kisWatchlistService.getWatchlistGroups())
+                    .isInstanceOf(NullPointerException.class);
         }
     }
 }

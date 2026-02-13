@@ -686,4 +686,101 @@ class KisAuthServiceTest {
             assertThat(attemptCount.get()).isEqualTo(2);  // 총 2회 시도
         }
     }
+
+    @Nested
+    @DisplayName("예외 복구 전략 테스트")
+    class ExceptionRecoveryTests {
+
+        @Test
+        @DisplayName("Redis 조회 실패 시 DataAccessException 전파")
+        void shouldPropagateDataAccessExceptionWhenRedisFails() {
+            // given
+            String hashedKey = "hashed-key";
+            String cacheKey = REDIS_KEY_PREFIX + hashedKey;
+
+            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(redisKeyHasher.hash(testAccount.accountNumber())).willReturn(hashedKey);
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(valueOperations.get(cacheKey))
+                    .willThrow(new org.springframework.dao.DataAccessException("Redis 연결 실패") {});
+
+            // when & then
+            assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class)
+                    .hasMessageContaining("Redis 연결 실패");
+        }
+
+        @Test
+        @DisplayName("토큰 암호화 실패 시 RuntimeException 전파")
+        void shouldPropagateExceptionWhenTokenEncryptionFails() {
+            // given
+            String hashedKey = "hashed-key";
+            String cacheKey = REDIS_KEY_PREFIX + hashedKey;
+            String expiryTime = LocalDateTime.now().plusHours(24).format(EXPIRY_FORMATTER);
+            KisTokenResponse tokenResponse = new KisTokenResponse("new-token", expiryTime, "Bearer", 86400L);
+
+            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(redisKeyHasher.hash(testAccount.accountNumber())).willReturn(hashedKey);
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(valueOperations.get(cacheKey)).willReturn(null);
+
+            setupRestClientMock(tokenResponse);
+            given(tokenEncryptor.encrypt("new-token"))
+                    .willThrow(new RuntimeException("암호화 키 오류"));
+
+            // when & then
+            assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("암호화 키 오류");
+        }
+
+        @Test
+        @DisplayName("토큰 복호화 실패 시 RuntimeException 전파")
+        void shouldPropagateExceptionWhenTokenDecryptionFails() {
+            // given
+            String hashedKey = "hashed-key";
+            String cacheKey = REDIS_KEY_PREFIX + hashedKey;
+
+            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(redisKeyHasher.hash(testAccount.accountNumber())).willReturn(hashedKey);
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(valueOperations.get(cacheKey)).willReturn("corrupted-encrypted-token");
+            given(tokenEncryptor.decrypt("corrupted-encrypted-token"))
+                    .willThrow(new RuntimeException("복호화 실패"));
+
+            // when & then
+            assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("복호화 실패");
+        }
+
+        @Test
+        @DisplayName("Redis 저장 실패 시 DataAccessException 전파")
+        void shouldPropagateDataAccessExceptionWhenRedisSaveFails() {
+            // given
+            String newToken = "new-access-token";
+            String encryptedToken = "encrypted-new-token";
+            String hashedKey = "hashed-key";
+            String cacheKey = REDIS_KEY_PREFIX + hashedKey;
+            String expiryTime = LocalDateTime.now().plusHours(24).format(EXPIRY_FORMATTER);
+            KisTokenResponse tokenResponse = new KisTokenResponse(newToken, expiryTime, "Bearer", 86400L);
+
+            given(kisProperties.accounts()).willReturn(List.of(testAccount));
+            given(redisKeyHasher.hash(testAccount.accountNumber())).willReturn(hashedKey);
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(valueOperations.get(cacheKey)).willReturn(null);
+            given(tokenEncryptor.encrypt(newToken)).willReturn(encryptedToken);
+            setupRestClientMock(tokenResponse);
+
+            // Redis 저장 실패
+            willAnswer(inv -> {
+                throw new org.springframework.dao.DataAccessException("Redis 쓰기 실패") {};
+            }).given(valueOperations).set(eq(cacheKey), eq(encryptedToken), any(Duration.class));
+
+            // when & then
+            assertThatThrownBy(() -> kisAuthService.getAccessToken(testAccount.name()))
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class)
+                    .hasMessageContaining("Redis 쓰기 실패");
+        }
+    }
 }
