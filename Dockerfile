@@ -101,15 +101,15 @@ EXPOSE 8080 9090
 # ==================== Container Memory Requirement ====================
 # JVM Memory Breakdown:
 #   - Heap (Xmx): 350MB          # 애플리케이션 객체 메모리
-#   - Metaspace: 100MB           # Spring Boot 클래스 메타데이터
+#   - Metaspace: 160MB           # Spring Boot 클래스 메타데이터
 #   - Direct Memory: 20MB        # NIO 버퍼 (KIS API 호출용)
 #   - Reserved Code Cache: 50MB  # JIT 컴파일 코드 캐시
 #   - Thread Stack: ~32MB        # 32 threads × 1MB per thread
-#   - Total JVM: ~552MB
+#   - Total JVM: ~612MB
 #
 # Recommended Container Settings (docker-compose.yml):
-#   mem_limit: 700m        # JVM 552MB + OS 88MB + Buffer 60MB (Phase 2)
-#   mem_reservation: 550m  # Guaranteed memory
+#   mem_limit: 760m        # JVM 612MB + OS 88MB + Buffer 60MB (Phase 2)
+#   mem_reservation: 610m  # Guaranteed memory
 #   oom_score_adj: -200    # OOM Killer priority (protect from early termination)
 #
 # NAS Environment: Safe within 8GB RAM (supports multiple services)
@@ -156,7 +156,7 @@ EXPOSE 8080 9090
 ENTRYPOINT ["java"]
 CMD ["-Xms256m", \
      "-Xmx350m", \
-     "-XX:MaxMetaspaceSize=100m", \
+     "-XX:MaxMetaspaceSize=160m", \
      "-XX:MaxDirectMemorySize=20m", \
      "-XX:ReservedCodeCacheSize=50m", \
      "-Xss1m", \
