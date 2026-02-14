@@ -48,12 +48,11 @@ RUN ls /app/build/libs/*.jar || (echo "Build failed: JAR not found" && exit 1)
 # - Package Manager 없음 (런타임 변조 불가)
 # - Google 관리, 지속적 보안 유지
 # - 참조: ../docs/adr/0007-distroless-image-strategy.md
-FROM gcr.io/distroless/java21-debian12@sha256:04f730658c79b99d42fadf2f8dd11c9d441cee10ce5eaa7cad4a75eaca2cb52a
+FROM gcr.io/distroless/java21-debian12@sha256:3525cafa2114ed879d3554acbbd3ba1b388e3cd3e8833ff58713ba133b0e1173
 
 # 메타데이터 라벨
 LABEL maintainer="jongtix" \
-      description="CAA Collector Service - Data Collection & Workflow Orchestration" \
-      version="1.0.0"
+      description="CAA Collector Service - Data Collection & Workflow Orchestration"
 
 # 환경별 설정 (Distroless 환경)
 # - Spring Profile: docker-compose.yml의 SPRING_PROFILES_ACTIVE 환경 변수로 제어
