@@ -136,8 +136,9 @@ class BaseEntityTest {
             WatchlistGroup updatedGroup = entityManager.find(WatchlistGroup.class, savedGroup.getId());
 
             // then
+            // LocalDateTime 나노초 정밀도 차이 고려 (CI 환경 안정성 개선)
             assertThat(updatedGroup.getCreatedAt())
-                    .isEqualTo(originalCreatedAt) // createdAt은 불변
+                    .isEqualToIgnoringNanos(originalCreatedAt) // createdAt은 불변
                     .describedAs("createdAt은 수정되지 않아야 한다");
 
             assertThat(updatedGroup.getUpdatedAt())
@@ -180,8 +181,9 @@ class BaseEntityTest {
             WatchlistGroup finalGroup = entityManager.find(WatchlistGroup.class, savedGroup.getId());
 
             // then
+            // LocalDateTime 나노초 정밀도 차이 고려 (CI 환경 안정성 개선)
             assertThat(finalGroup.getCreatedAt())
-                    .isEqualTo(originalCreatedAt)
+                    .isEqualToIgnoringNanos(originalCreatedAt)
                     .describedAs("여러 번 수정해도 createdAt은 불변이어야 한다");
 
             assertThat(finalGroup.getGroupName())

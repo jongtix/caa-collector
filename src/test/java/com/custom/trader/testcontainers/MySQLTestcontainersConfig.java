@@ -45,6 +45,10 @@ public class MySQLTestcontainersConfig {
     public MySQLContainer<?> mysqlContainer() {
         return new MySQLContainer<>(DockerImageName.parse("mysql:8.0"))
                 .withReuse(true)  // 컨테이너 재사용으로 테스트 속도 향상
-                .withCommand("--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci");
+                .withCommand(
+                        "--character-set-server=utf8mb4",
+                        "--collation-server=utf8mb4_unicode_ci",
+                        "--default-time-zone=+09:00"  // KST 시간대 설정 (CI 환경 안정성 개선)
+                );
     }
 }

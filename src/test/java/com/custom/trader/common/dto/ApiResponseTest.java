@@ -21,16 +21,23 @@ class ApiResponseTest {
     void success_WithDataOnly() {
         // Given
         String data = "테스트 데이터";
+        LocalDateTime before = LocalDateTime.now(KST_ZONE_ID);
 
         // When
         ApiResponse<String> response = ApiResponse.success(data);
+
+        LocalDateTime after = LocalDateTime.now(KST_ZONE_ID);
 
         // Then
         assertThat(response.success()).isTrue();
         assertThat(response.data()).isEqualTo(data);
         assertThat(response.message()).isNull();
         assertThat(response.timestamp()).isNotNull();
-        assertThat(response.timestamp()).isBefore(LocalDateTime.now().plusSeconds(1));
+
+        // 타임스탬프가 before와 after 사이에 있는지 검증 (CI 환경 안정성 개선)
+        assertThat(response.timestamp())
+            .isAfterOrEqualTo(before.minusSeconds(1))
+            .isBeforeOrEqualTo(after.plusSeconds(1));
     }
 
     @Test
