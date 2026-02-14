@@ -1,0 +1,83 @@
+# ==================== Docker Publish Workflow ====================
+# caa-collector 서비스의 Docker 이미지를 Docker Hub에 자동 빌드 및 푸시
+#
+# 트리거:
+# 1. Git Tag 푸시 시: v*.*.* 패턴 (예: v1.0.0, v1.2.3)
+# 2. 수동 실행: workflow_dispatch (테스트용)
+#
+# 배포 전략:
+# - release-please가 Git Tag 생성 시 자동 실행
+# - Docker Hub에 버전별 이미지 및 latest 태그 푸시
+# - Watchtower가 이미지 갱신 감지 → 자동 재시작
+#
+# 이미지 이름: jongtix/caa-collector
+# 태그 전략:
+# - Git Tag v1.0.0 → jongtix/caa-collector:1.0.0, jongtix/caa-collector:latest
+# - 수동 실행 → jongtix/caa-collector:sha-{short-hash}
+#
+# 참조:
+# - ADR-0005: Docker Hub 공개 배포 전략
+# - DEVELOPMENT.md: release-please 워크플로우 가이드
+# ==============================================================================
+
+name: Docker Publish
+
+on:
+  # Git Tag 푸시 시 자동 실행
+  push:
+    tags:
+      - 'v*.*.*'  # v1.0.0, v1.2.3 등
+
+  # 수동 실행 (테스트용)
+  # GitHub Actions UI에서 "Run workflow" 버튼으로 실행
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '버전 태그 (예: v1.0.0, 비워두면 커밋 SHA 사용)'
+        required: false
+        type: string
+        default: ''
+
+# 동시 실행 방지 (동일 태그 중복 빌드 방지)
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-input:
+    name: Validate Input
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+    steps:
+      - name: Validate version format
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          if ! echo "${VERSION_INPUT}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Invalid version format: '${VERSION_INPUT}'. Expected: v<major>.<minor>.<patch> (e.g., v1.0.0, v1.2.3-beta.1)"
+            exit 1
+          fi
+          echo "Version format validated: ${VERSION_INPUT}"
+
+  docker-build-push:
+    name: Build & Push Docker Image
+    needs: [validate-input]
+    if: always() && (needs.validate-input.result == 'success' || needs.validate-input.result == 'skipped')
+    # Reusable Workflow 호출 (CAA 루트 레벨)
+    # NOTE: @main 하드코딩 유지 (GitHub Actions 제약으로 동적 브랜치 참조 불가)
+    # 테스트 필요 시: CAA 루트에 feature 브랜치 생성 → @feature-branch-name으로 임시 변경
+    uses: jongtix/caa/.github/workflows/reusable-docker-build-push.yml@main
+    with:
+      service_name: 'caa-collector'
+      dockerfile_path: 'caa-collector/Dockerfile'
+      docker_context: 'caa-collector'
+      image_name: 'jongtix/caa-collector'
+      # Git Tag 푸시 시: ${{ github.ref_name }} (예: v1.0.0)
+      # 수동 실행 시: 입력값 또는 커밋 SHA
+      version: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

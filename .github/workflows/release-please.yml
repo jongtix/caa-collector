@@ -1,0 +1,50 @@
+# ==============================================================================
+# Release Please Workflow
+#
+# main 브랜치 푸시 시 Conventional Commits 분석 → 릴리스 PR 자동 생성
+# PR 머지 → Git Tag 생성 → docker-publish.yml 트리거
+#
+# 참조: ADR-0020, DEVELOPMENT.md (release-please 워크플로우)
+# ==============================================================================
+
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+# 동시 실행 방지 (main 브랜치 동시 푸시 시 중복 PR 생성/업데이트 방지)
+# cancel-in-progress: false → PR 생성 무결성 유지 (취소하지 않고 순차 실행)
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38  # v4.4.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output release info
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+        run: |
+          echo "Release created: ${TAG_NAME}"
+          echo "Docker build will be triggered by docker-publish.yml"
