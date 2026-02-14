@@ -2,6 +2,9 @@
 
 > **비즈니스 관점의 제품 요구사항 정의**
 
+**작성자**: jongtix + Claude (pm)
+**Last Updated**: 2026-02-14
+
 ---
 
 ## Executive Summary

@@ -2,6 +2,9 @@
 
 > **개발자를 위한 상세 기술 명세**
 
+**작성자**: jongtix + Claude (backend-developer)
+**Last Updated**: 2026-02-14
+
 ---
 
 ## System Architecture

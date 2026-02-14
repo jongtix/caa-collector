@@ -2,6 +2,11 @@
 
 > **Custom Algorithmic Advisor - Data Collection & Workflow Orchestration Service**
 
+**작성자**: jongtix + Claude (pm)
+**Last Updated**: 2026-02-14
+
+---
+
 ## Project Overview
 
 CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스템(CAA)**의 MSA 아키텍처 중 **데이터 수집 및 워크플로우 오케스트레이션**을 담당하는 핵심 서비스입니다.
@@ -71,14 +76,25 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 - **Language & Framework**: Java 21, Spring Boot 3.5.9
 - **Build Tool**: Gradle
 - **Persistence**: Spring Data JPA
-- **Database**: H2 (개발), MySQL (운영)
+- **Database**: MySQL (운영), Testcontainers MySQL (테스트)
 - **Cache & Lock**: Redis (토큰 캐싱, ShedLock 분산 락)
 - **Scheduler**: Spring Scheduling + ShedLock
 - **Container**: Docker (eclipse-temurin:21-jdk-alpine)
+- **CI/CD**: GitHub Actions (release-please, Docker Hub 자동 배포)
+- **Version Management**: release-please (Semantic Versioning)
+- **Commit Convention**: Conventional Commits (feat, fix, chore)
 - **External APIs**:
   - 한국투자증권 Open API (OAuth2)
   - AI Advisor Service (REST)
   - Notifier Service (REST)
+
+---
+
+## 커밋 규칙
+
+본 프로젝트는 **Conventional Commits** 형식을 사용하여 자동 버전 관리 및 릴리스를 지원합니다.
+
+**상세 가이드**: [DEVELOPMENT.md - Conventional Commits 가이드](docs/DEVELOPMENT.md#conventional-commits-가이드)
 
 ---
 
@@ -87,8 +103,25 @@ CAA Collector Service는 **사용자 맞춤형 알고리즘 투자 조언 시스
 ### Prerequisites
 
 - Java 21 이상
-- Docker (Redis, MySQL 실행용)
+- **Docker Desktop 실행 필수**
+  - **개발**: Redis, MySQL 실행
+  - **테스트**: Testcontainers MySQL 자동 실행 (모든 테스트 의존)
 - 한국투자증권 Open API 계정 (App Key, App Secret)
+
+### ⚠️ Docker 미실행 시 문제
+
+Docker Desktop이 실행되지 않으면 다음 오류가 발생합니다.
+
+```bash
+# 테스트 실패 예시
+./gradlew test
+# Cannot connect to Docker daemon 에러
+
+# 해결 방법
+# 1. Docker Desktop 실행
+# 2. 터미널 재시작 (필요시)
+# 3. ./gradlew test 재실행
+```
 
 ### 환경 변수 설정
 
@@ -297,6 +330,7 @@ com.custom.trader
 ## Related Documentation
 
 ### Collector 문서
+- [DEVELOPMENT.md](./docs/DEVELOPMENT.md) - 개발자 가이드 (커밋 규칙, 릴리스 프로세스)
 - [MILESTONE.md](./docs/MILESTONE.md) - Collector 일정 및 Phase별 진행 상황
 - [TODO.md](./docs/TODO.md) - Collector 단기 작업 목록 및 우선순위
 - [PRD.md](./docs/PRD.md) - Collector 제품 요구사항 정의

@@ -31,7 +31,7 @@
 
 **목표**: Docker 컨테이너화, CI/CD 파이프라인, 자동 배포 체계 구축
 
-**기간**: 2026-01-28 (화) ~ 02-22 (일) | **예상 시간: 57.3시간** | **진행률: 58%**
+**기간**: 2026-01-28 (화) ~ 02-22 (일) | **예상 시간: 57.3시간** | **진행률: 78%**
 
 ### Week 1: 문서화 + 보안 강화 (2026-01-26 ~ 02-07) ✅ 완료
 
@@ -63,18 +63,22 @@
 - [x] .dockerignore 설정
 - [x] 로컬 테스트 및 디버깅 (dev, log-dev, db-dev 프로파일 검증)
 - [x] 문서화 (DEPLOYMENT.md, .env.example, README 업데이트)
-#### 2. CI/CD 파이프라인 🚧 진행 중 (10.5시간)
+#### 2. CI/CD 파이프라인 ✅ 완료 (14.5시간)
 - [x] Reusable Workflow CI/CD 전략 (ADR-0009) ✅ **완료 (2026-02-10)**
   - ✅ CAA 루트: reusable-java-ci.yml, reusable-java-security-scan.yml 생성
   - ✅ caa-collector: Caller 워크플로우 (ci.yml, security-scan.yml) + dependabot.yml 생성
   - ✅ 기존 워크플로우 삭제, Action 버전 통일 (v6/v5), push branches 필터 제거
-- [ ] Docker Hub 연동 (docker/login-action@v3)
+- [x] Docker Hub 연동 (docker/login-action@v3) ✅ **완료 (2026-02-14)**
+  - ✅ docker-publish.yml 워크플로우 생성 (CAA 루트 Reusable Workflow 호출)
+  - ✅ 수동/자동 트리거 지원 (workflow_dispatch, push tags)
 - [x] 보안 스캔 통합 (Dependabot + Trivy) - 1.5시간 ✅ **완료 (2026-02-08)**
   - ✅ ADR-0014 완료 (2026-02-02): Dependabot + Trivy 전략
   - ✅ GitHub Dependabot 활성화 (.github/dependabot.yml)
   - ✅ Trivy GitHub Actions 추가 (Gradle + Docker 이미지 스캔, CVSS 7.0 이상 빌드 실패)
-- [ ] 자동 버전 태깅 (semantic versioning)
-- [ ] 빌드 성공/실패 알림 설정
+- [x] 자동 버전 태깅 (semantic versioning) ✅ **완료 (2026-02-14)**
+  - ✅ release-please.yml 워크플로우 생성
+  - ✅ Conventional Commits 기반 자동 버전 관리 및 CHANGELOG 생성
+- [ ] 빌드 성공/실패 알림 설정 → **Phase 3으로 연기**
 
 #### 3. 자동 배포 🔜 진행 예정 (10시간)
 - [ ] Watchtower 설정 및 테스트
@@ -88,17 +92,22 @@
 - [ ] 백업 및 복구 프로세스
 - ~~[ ] Portainer 연동 및 대시보드 구성~~ → **Phase 3으로 연기**
 
-#### 5. 문서화 🚧 진행 중 (7시간)
-- [x] DEPLOYMENT.md 작성 (보안 가이드 포함, Actuator 구현 상태 명확화) - **50% 완료**
-- [ ] DEPLOYMENT.md 고도화 (CI/CD, 모니터링 섹션 추가)
-- [ ] ADR-0020 작성 (배포 자동화 전략)
-- [ ] 로컬 개발 환경 가이드
+#### 5. 문서화 ✅ 완료 (18시간)
+- [x] DEPLOYMENT.md 작성 (보안 가이드 포함, Actuator 구현 상태 명확화) - ✅ **완료 (2026-02-08)**
+- [x] ADR-0020 작성 (Docker CI/CD 자동화 전략) - ✅ **완료 (2026-02-14)**
+  - ✅ release-please와 Docker Hub 자동 배포 워크플로우 설계
+  - ✅ Reusable Workflow 전략 및 Conventional Commits 규칙 정립
+- [x] DEVELOPMENT.md 작성 (로컬 개발 환경 가이드) - ✅ **완료 (2026-02-14)**
+  - ✅ Conventional Commits 가이드 (5가지 Type, 예시 20개 이상)
+  - ✅ Semantic Versioning 규칙 및 release-please 워크플로우 설명
+  - ✅ 로컬 개발 환경 설정 (.env, Docker, 프로파일)
+- [ ] DEPLOYMENT.md 고도화 (모니터링 섹션 추가) → **Phase 2 Week 4 또는 Phase 3**
 
 > **📌 참고**: Docker/CI/CD는 MSA 공통 인프라이지만 Collector 우선 적용 후 향후 서비스 추가 시 재사용
 
-**Phase 2 총 예상 시간**: 57.3시간 (Week 1: 13.3h 완료, Week 2: 18.5h 완료, Week 2-3: 1.5h 완료, 남음: 22.5h)
-- CI/CD 보안 스캔: 1.5h 완료 (ADR-0014 작성 제외)
-- 모니터링: 3.5h (Portainer는 Phase 3으로 연기)
+**Phase 2 총 예상 시간**: 57.3시간 (Week 1: 13.3h 완료, Week 2-3: 44.8h 완료 → **78% 완료**, 남음: 12.5h)
+- 완료 작업: 컨테이너화, CI/CD 파이프라인, ADR-0020, DEVELOPMENT.md, 보안 스캔
+- 남은 작업: 자동 배포 (10h), 모니터링 (2.5h, Portainer는 Phase 3으로 연기)
 
 ---
 
@@ -185,7 +194,7 @@
 | Phase | 기간 | 진행률 | 상태 |
 |-------|------|--------|------|
 | Phase 1: 데이터 수집 인프라 | 2026-01-12 ~ 01-25 (2주) | 100% | ✅ 완료 |
-| Phase 2: 배포 및 운영 인프라 | 2026-01-28 ~ 02-22 (3.5주) | 58% | 🚧 진행 중 |
+| Phase 2: 배포 및 운영 인프라 | 2026-01-28 ~ 02-22 (3.5주) | 78% | 🚧 진행 중 |
 | Phase 3: 실시간 데이터 수집 | 2026-02-23 ~ 03-01 (1주) | 0% | ⏳ 대기 |
 | Phase 4: AI Advisor 개발 및 연동 | 2026-03-02 ~ 03-22 (3주) | 0% | ⏳ 대기 |
 | Phase 5: Notifier 개발 및 연동 **(MVP)** | 2026-03-23 ~ 04-05 (2주) | 0% | ⏳ 대기 |

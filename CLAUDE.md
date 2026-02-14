@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**작성자**: jongtix + Claude (pm)
+**Last Updated**: 2026-02-14
+
+---
+
 ## Project Overview
 
 한국투자증권 Open API를 이용한 알고리즘 트레이딩 시스템. 관심 종목을 추적하고 주식 가격 예측 알고리즘(이동평균선, 머신러닝 등)을 통해 상승/하락을 예측하여 카카오톡으로 알림을 전송한다.
@@ -10,7 +15,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Java 21, Spring Boot 3.5.9, Gradle
 - Spring Data JPA + Redis (토큰 캐싱, ShedLock)
-- H2 (개발), MySQL (운영)
+- MySQL (운영), Testcontainers MySQL (테스트)
+- CI/CD: GitHub Actions (release-please, Docker Hub 자동 배포)
+- Version Management: release-please (Semantic Versioning)
+- Commit Convention: Conventional Commits (feat, fix, chore)
 
 ## Build Commands
 
@@ -78,7 +86,8 @@ com.custom.trader
 - **영속성/JPA**:~/ `.claude/skills/persistence-strategy/SKILL.md`
 - **에러 처리**: `~/.claude/skills/error-handling-master/SKILL.md`
 - **테스트 작성**: `~/.claude/skills/test-code-generator/SKILL.md`
-- **Git 규칙**: `~/.claude/skills/git-convention/SKILL.md`
+- **Git 브랜치**: `~/.claude/skills/git-branch-strategy/SKILL.md`
+- **Git 커밋**: `~/.claude/skills/git-commit-message-convention/SKILL.md`
 - **그 외 정의되지 않은 작업**: `pm` 에이전트와 상의 후 진행
 
 ## 대략적인 작업 흐름
@@ -111,11 +120,12 @@ Collector는 MSA의 일부이므로, 전체 아키텍처 및 서비스 간 통�
 
 Collector 내부 상세는 `docs/` 폴더에 관리됨 (Phase 2 Week 1 100% 완료):
 
-- **MILESTONE.md**: Collector 일정 (Week별 상세, Phase 1 100%, Phase 2 20%)
-- **TODO.md**: Collector 단기 작업 목록 (2026-01-28 최신화)
+- **MILESTONE.md**: Collector 일정 (Week별 상세, Phase 1 100%, Phase 2 78%)
+- **TODO.md**: Collector 단기 작업 목록 (2026-02-14 최신화)
 - **PRD.md**: Collector 제품 요구사항 명세 (책임 범위 명확화)
 - **TECHSPEC.md**: Collector 기술 명세서 (Strategy Pattern, 3-way sync, WebSocket)
-- **adr/**: Collector 아키텍처 결정 기록 (11개 ADR)
+- **DEVELOPMENT.md**: 개발자 가이드 (Conventional Commits, release-please, 릴리스 프로세스)
+- **adr/**: Collector 아키텍처 결정 기록 (20개 ADR)
 
 ## External APIs
 
